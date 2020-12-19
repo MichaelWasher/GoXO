@@ -3,11 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"time"
+
 	tm "github.com/buger/goterm"
 	"github.com/pkg/term"
-	"math"
-	"time"
 )
+
 // ---- Constants
 var DOWN_KEY = []byte{27, 91, 66}
 var UP_KEY = []byte{27, 91, 65}
@@ -18,8 +19,10 @@ var A_KEY = []byte{97}
 var S_KEY = []byte{115}
 var D_KEY = []byte{100}
 var SPACE_KEY = []byte{32}
+var Q_KEY = []byte{113}
 
 type Direction int
+
 const (
 	Left Direction = 1 << iota
 	Right
@@ -37,104 +40,85 @@ const GRID_TEMPLATE = `
 -------------
 `
 
-
 // ---- Game Variables
-// TODO use object for user for easier multiplayer
-type user struct {
-	position int
-	character string
-	mark string
-}
-
-	func (player *user) moveUser(d Direction){
-	switch d {
-	case Left:
-		if player.position % 3 != 0 {
-			player.position--
-		}
-	case Right:
-		if player.position % 3 != 2 {
-			player.position++
-		}
-	case Up:
-		if math.Floor(float64(player.position / 3)) != 0 {
-			player.position -= 3
-		}
-	case Down:
-		if math.Floor(float64(player.position / 3)) != 2 {
-			player.position += 3
-		}
-	default:
-		println("Error has occurred in the move user function.")
-	}
-}
-
-func (player user) placeMark(){
-	originGrid[player.position] = player.mark
-}
-
 var originGrid [9]string
 var displayGrid = make([]interface{}, len(originGrid))
-var player1 = user{position: 0, character: "Y", mark: "Y"}
+
+// Users
+var player1 = User{Position: 0, Character: "Y", Mark: "X"}
+var player2 = User{Position: 8, Character: "Y", Mark: "0"}
+var running bool
+
+// Core Game Loop
 
 func gameLoop() {
 	initGrid()
-	for {
+	running = true
+	for running {
 		draw()
 		update()
 		time.Sleep(1)
 	}
 }
-func populateDisplayGrid(){
+func populateDisplayGrid() {
 	for i, v := range originGrid {
 		displayGrid[i] = v
 	}
-	displayGrid[player1.position] = player1.character
+	displayGrid[player1.Position] = player1.Character
 }
-func update(){
+func update() {
 	handleKeyEvents()
 	populateDisplayGrid()
 }
 
-func draw(){
+func draw() {
 	tm.Clear() // Clear current screen
-	tm.MoveCursor(1,1)
+	tm.MoveCursor(1, 1)
 	tm.Printf(GRID_TEMPLATE, displayGrid...)
 	tm.Flush()
 }
 
-func handleKeyEvents(){
+func handleKeyEvents() {
 	c := getch()
-	switch {
-	// TODO Add quit functionality
-	case bytes.Equal(c, LEFT_KEY) || bytes.Equal(c, A_KEY): // left
-		fmt.Println("LEFT pressed")
-		player1.moveUser(Left)
-	case bytes.Equal(c, RIGHT_KEY) || bytes.Equal(c, D_KEY): // right
-		fmt.Println("RIGHT pressed")
-		player1.moveUser(Right)
-	case bytes.Equal(c, UP_KEY) || bytes.Equal(c, W_KEY): // up
-		fmt.Println("UP pressed")
-		player1.moveUser(Up)
-	case bytes.Equal(c, DOWN_KEY) || bytes.Equal(c, S_KEY): // down
-		fmt.Println("DOWN pressed")
-		player1.moveUser(Down)
-	case bytes.Equal(c, SPACE_KEY): // Place key
-		fmt.Println("SPACE pressed")
-		player1.placeMark()
-	default:
-		fmt.Println("Unknown pressed", c)
+	for {
+		switch {
+		// TODO Add quit functionality
+		case bytes.Equal(c, LEFT_KEY) || bytes.Equal(c, A_KEY): // left
+			fmt.Println("LEFT pressed")
+			player1.MoveUser(Left)
+		case bytes.Equal(c, RIGHT_KEY) || bytes.Equal(c, D_KEY): // right
+			fmt.Println("RIGHT pressed")
+			player1.MoveUser(Right)
+		case bytes.Equal(c, UP_KEY) || bytes.Equal(c, W_KEY): // up
+			fmt.Println("UP pressed")
+			player1.MoveUser(Up)
+		case bytes.Equal(c, DOWN_KEY) || bytes.Equal(c, S_KEY): // down
+			fmt.Println("DOWN pressed")
+			player1.MoveUser(Down)
+		case bytes.Equal(c, SPACE_KEY): // Place key
+			fmt.Println("SPACE pressed")
+			player1.PlaceMark()
+			break
+		case bytes.Equal(c, Q_KEY):
+			running = false
+			break
+		default:
+			fmt.Println("Unknown pressed", c)
+		}
+		if originGrid[player1.Position] == "." {
+			break
+		}
 	}
 }
 
-func initGrid(){
+func initGrid() {
 	for i := 0; i < len(originGrid); i++ {
 		originGrid[i] = "."
 	}
 	populateDisplayGrid()
 }
 
-
+// TODO -- Implement the game logic. Wining, Losing and Points
 // ---- Utility Functions
 func getch() []byte {
 	t, _ := term.Open("/dev/tty")
