@@ -7,16 +7,10 @@ type User struct {
 	Position  int
 	Character string
 	Mark      string
+	Name string
 }
 
-// PlaceMark places one of the users tokens on the currently occupied square
-func (player User) PlaceMark() {
-	//if originGrid[player.Position] != "." {
-	//	return
-	//}
 
-	//originGrid[player.Position] = player.Mark
-}
 
 // MoveUser will change the position of the user, if possible, in the provided Move (d)
 func (player *User) MoveUser(d Move) {

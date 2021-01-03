@@ -1,9 +1,9 @@
 package main
 
 import (
+	tm "github.com/buger/goterm"
 	"log"
 	"math"
-	"time"
 )
 
 type Move int
@@ -14,18 +14,19 @@ const (
 	MoveDown
 	PlacePiece
 	Quit
+	FinishedMove
 )
 
 
 // ---- Game Variables
-
 var lg LogicGrid = NewLogicGrid()
 
 // Users
-var player1 = User{Position: 0, Character: "Y", Mark: "X"}
-var player2 = User{Position: 8, Character: "Y", Mark: "0"}
+var player1 = User{Position: 0, Character: "Y", Mark: "X", Name: "Player1"}
+var player2 = User{Position: 8, Character: "Y", Mark: "0", Name: "Player2"}
 var players = []*User{&player1, &player2}
-var currentUser = players[0]
+
+var currentPlayerIndex int = 0
 
 var running bool
 
@@ -37,11 +38,15 @@ var lastMove Move
 var outstandingMoves = make(chan Move)
 func gameLoop() {
 	running = true
+	draw()
+
 	go handleKeyEvents()
 	for running {
+		currentMove := <- outstandingMoves
+		update(currentMove)
+
 		draw()
-		update()
-		time.Sleep(1)
+		outstandingMoves <- FinishedMove
 	}
 }
 
@@ -49,6 +54,7 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove Move){
 	tmpPosition := currentPlayer.Position
 	log.Print("PerformMove")
 
+	// TODO Fix this to deal with corner's better. If top left and bottom right are only left, cannot jump between.
 	for{
 		if (tmpPosition%3 == 0 && MoveLeft == currentMove) ||
 			(tmpPosition%3 == 2 && MoveRight == currentMove) ||
@@ -79,14 +85,19 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove Move){
 
 }
 
-func update() {
-	currentMove := <- outstandingMoves
-	currentPlayer := players[0]
+func update(currentMove Move) {
+
+	currentPlayer := players[currentPlayerIndex]
 	if currentMove == Quit{
 		running = false
 	}else if currentMove == PlacePiece{
-		// Place Mark in Grid and cycle current user
+		lg.PlaceMark(currentPlayer)
+		if checkWinner(currentPlayer){
+			//TODO Break and start closing sequence
 
+		}
+		// Change Player
+		currentPlayerIndex = (currentPlayerIndex + 1) % len(players)
 	}else{
 		performMove(lg, currentPlayer, currentMove)
 	}
@@ -94,19 +105,27 @@ func update() {
 }
 
 func draw() {
-	lg.draw(players)
+	lg.draw([]*User{players[currentPlayerIndex]})
+	//-- Draw Statistics
+	statsTemplate := `
+Player Name: %s
+Current Position: %d`
+	for _, player := range players{
+		tm.Printf(statsTemplate, player.Name, player.Position)
+	}
+	tm.Flush()
 }
 
 
-// TODO -- Implement the game logic. Wining, Losing and Points
-func  checkWinner(user User)(bool) {
+// ---- Check Winner Functionality
+func  checkWinner(user *User)(bool) {
 	if columnsComplete(lg) || rowsComplete(lg) || diagComplete(lg) || antiDiagComplete(lg){
 		// Winnner is found
+		log.Print("WINNER WAS FOUND")
+		return true
 	}
 	return false
 }
-
-// ---- Utility Functions
 
 func rowsComplete(lg LogicGrid) bool{
 	for currentRow := 0; currentRow < RowLength; currentRow++ {
@@ -120,10 +139,15 @@ func rowsComplete(lg LogicGrid) bool{
 func columnsComplete(lg LogicGrid) bool{
 	for currentColumn := 0; currentColumn < RowCount; currentColumn++ {
 		column, _ := lg.getColumn(currentColumn)
+		log.Printf("Checking Columns")
+		for _, v := range column{
+			log.Print("%d,",v)
+		}
 		if checkAllSame(column){
 			return true
 		}
 	}
+	log.Printf("Colmns not complete")
 	return false
 }
 

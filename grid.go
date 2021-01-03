@@ -73,7 +73,7 @@ func (lg LogicGrid) getColumn(colIndex int) ([]string, error){
 
 	column := make([]string, RowCount)
 	for index := range column{
-		column[index] = lg.GridArray[index * RowLength + index]
+		column[index] = lg.GridArray[index * RowLength + colIndex]
 	}
 
 	return column, nil
@@ -91,9 +91,22 @@ func (lg LogicGrid) getDiagonal() ([]string){
 func (lg LogicGrid) getAntiDiagonal() ([]string){
 	diagonal := make([]string, int(math.Min(float64(RowLength), float64(RowCount))))
 	for index := range diagonal{
-		diagonal[index] = lg.GridArray[(RowLength - index - 1) - (RowLength * index)]
+		diagonal[index] = lg.GridArray[(RowLength - index - 1) + (RowLength * index)]
 	}
 	return diagonal
+}
+
+// PlaceMark places one of the users tokens on the currently occupied square
+func (lg *LogicGrid) PlaceMark(player *User) error {
+	// Ensure that the space is not used
+	if lg.isUsed(Position(player.Position)){
+		return errors.New("Invalid Position. Unable to place mark.")
+	}
+	log.Print("Placing Mark")
+	log.Printf("Mark is %s", lg.GridArray[player.Position])
+	lg.GridArray[player.Position] = player.Mark
+	log.Printf("Mark is %s", lg.GridArray[player.Position])
+	return nil
 }
 
 

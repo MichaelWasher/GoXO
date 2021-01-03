@@ -19,6 +19,7 @@ var D_KEY = []byte{100}
 var SPACE_KEY = []byte{32}
 var Q_KEY = []byte{113}
 var CTRL_C_KEYS = []byte{3}
+
 func handleKeyEvents() {
 	for(running) {
 		c := getch()
@@ -45,7 +46,9 @@ func handleKeyEvents() {
 			break
 		default:
 			fmt.Println("Unknown pressed", c)
+			continue
 		}
+		<- outstandingMoves
 	}
 }
 
