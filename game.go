@@ -1,134 +1,148 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
+	"log"
+	"math"
 	"time"
-
-	tm "github.com/buger/goterm"
-	"github.com/pkg/term"
 )
 
-// ---- Constants
-var DOWN_KEY = []byte{27, 91, 66}
-var UP_KEY = []byte{27, 91, 65}
-var RIGHT_KEY = []byte{27, 91, 67}
-var LEFT_KEY = []byte{27, 91, 68}
-var W_KEY = []byte{119}
-var A_KEY = []byte{97}
-var S_KEY = []byte{115}
-var D_KEY = []byte{100}
-var SPACE_KEY = []byte{32}
-var Q_KEY = []byte{113}
-
-type Direction int
-
+type Move int
 const (
-	Left Direction = 1 << iota
-	Right
-	Up
-	Down
+	MoveLeft Move = 1 << iota
+	MoveRight
+	MoveUp
+	MoveDown
+	PlacePiece
+	Quit
 )
 
-const GRID_TEMPLATE = `
--------------
-| %s | %s | %s |
--------------
-| %s | %s | %s |
--------------
-| %s | %s | %s |
--------------
-`
 
 // ---- Game Variables
-var originGrid [9]string
-var displayGrid = make([]interface{}, len(originGrid))
+
+var lg LogicGrid = NewLogicGrid()
 
 // Users
 var player1 = User{Position: 0, Character: "Y", Mark: "X"}
 var player2 = User{Position: 8, Character: "Y", Mark: "0"}
+var players = []*User{&player1, &player2}
+var currentUser = players[0]
+
 var running bool
 
-// Core Game Loop
+// Move State Carriers
+var lastMove Move
 
+
+// Core Game Loop
+var outstandingMoves = make(chan Move)
 func gameLoop() {
-	initGrid()
 	running = true
+	go handleKeyEvents()
 	for running {
 		draw()
 		update()
 		time.Sleep(1)
 	}
 }
-func populateDisplayGrid() {
-	for i, v := range originGrid {
-		displayGrid[i] = v
+
+func performMove(lg LogicGrid, currentPlayer *User, currentMove Move){
+	tmpPosition := currentPlayer.Position
+	log.Print("PerformMove")
+
+	for{
+		if (tmpPosition%3 == 0 && MoveLeft == currentMove) ||
+			(tmpPosition%3 == 2 && MoveRight == currentMove) ||
+			(math.Floor(float64(tmpPosition/3)) == 0 && MoveUp == currentMove) ||
+			(math.Floor(float64(tmpPosition/3)) == 2 && MoveDown == currentMove){
+			return
+		}
+
+		switch currentMove {
+		case MoveLeft:
+				tmpPosition--
+		case MoveRight:
+				tmpPosition++
+		case MoveUp:
+				tmpPosition -= 3
+		case MoveDown:
+				tmpPosition += 3
+		default:
+			println("Error has occurred in the move user function.")
+		}
+
+		if !lg.isUsed(Position(tmpPosition)){ //TODO Replace position type
+			currentPlayer.Position = tmpPosition
+			log.Printf("Current Player Position %d", tmpPosition)
+			return
+		}
 	}
-	displayGrid[player1.Position] = player1.Character
+
 }
+
 func update() {
-	handleKeyEvents()
-	populateDisplayGrid()
+	currentMove := <- outstandingMoves
+	currentPlayer := players[0]
+	if currentMove == Quit{
+		running = false
+	}else if currentMove == PlacePiece{
+		// Place Mark in Grid and cycle current user
+
+	}else{
+		performMove(lg, currentPlayer, currentMove)
+	}
+
 }
 
 func draw() {
-	tm.Clear() // Clear current screen
-	tm.MoveCursor(1, 1)
-	tm.Printf(GRID_TEMPLATE, displayGrid...)
-	tm.Flush()
+	lg.draw(players)
 }
 
-func handleKeyEvents() {
-	c := getch()
-	for {
-		switch {
-		// TODO Add quit functionality
-		case bytes.Equal(c, LEFT_KEY) || bytes.Equal(c, A_KEY): // left
-			fmt.Println("LEFT pressed")
-			player1.MoveUser(Left)
-		case bytes.Equal(c, RIGHT_KEY) || bytes.Equal(c, D_KEY): // right
-			fmt.Println("RIGHT pressed")
-			player1.MoveUser(Right)
-		case bytes.Equal(c, UP_KEY) || bytes.Equal(c, W_KEY): // up
-			fmt.Println("UP pressed")
-			player1.MoveUser(Up)
-		case bytes.Equal(c, DOWN_KEY) || bytes.Equal(c, S_KEY): // down
-			fmt.Println("DOWN pressed")
-			player1.MoveUser(Down)
-		case bytes.Equal(c, SPACE_KEY): // Place key
-			fmt.Println("SPACE pressed")
-			player1.PlaceMark()
-			break
-		case bytes.Equal(c, Q_KEY):
-			running = false
-			break
-		default:
-			fmt.Println("Unknown pressed", c)
-		}
-		if originGrid[player1.Position] == "." {
-			break
-		}
-	}
-}
-
-func initGrid() {
-	for i := 0; i < len(originGrid); i++ {
-		originGrid[i] = "."
-	}
-	populateDisplayGrid()
-}
 
 // TODO -- Implement the game logic. Wining, Losing and Points
-// ---- Utility Functions
-func getch() []byte {
-	t, _ := term.Open("/dev/tty")
-	term.RawMode(t)
-	bytes := make([]byte, 3)
-	numRead, err := t.Read(bytes)
-	t.Restore()
-	t.Close()
-	if err != nil {
-		return nil
+func  checkWinner(user User)(bool) {
+	if columnsComplete(lg) || rowsComplete(lg) || diagComplete(lg) || antiDiagComplete(lg){
+		// Winnner is found
 	}
-	return bytes[0:numRead]
+	return false
+}
+
+// ---- Utility Functions
+
+func rowsComplete(lg LogicGrid) bool{
+	for currentRow := 0; currentRow < RowLength; currentRow++ {
+		row, _ := lg.getRow(currentRow)
+		if checkAllSame(row){
+			return true
+		}
+	}
+	return false
+}
+func columnsComplete(lg LogicGrid) bool{
+	for currentColumn := 0; currentColumn < RowCount; currentColumn++ {
+		column, _ := lg.getColumn(currentColumn)
+		if checkAllSame(column){
+			return true
+		}
+	}
+	return false
+}
+
+func diagComplete (lg LogicGrid) bool{
+	diagonal := lg.getDiagonal()
+	return checkAllSame(diagonal)
+}
+
+func antiDiagComplete (lg LogicGrid) bool{
+	diagonal := lg.getAntiDiagonal()
+	return checkAllSame(diagonal)
+}
+
+// -- helper function
+func checkAllSame(a []string) bool {
+	for i := 1; i < len(a); i++ {
+		if a[i] != a[0] {
+			return false
+		}
+	}
+	return true
 }

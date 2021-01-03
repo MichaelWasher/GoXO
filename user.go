@@ -11,29 +11,29 @@ type User struct {
 
 // PlaceMark places one of the users tokens on the currently occupied square
 func (player User) PlaceMark() {
-	if originGrid[player.Position] != "." {
-		return
-	}
+	//if originGrid[player.Position] != "." {
+	//	return
+	//}
 
-	originGrid[player.Position] = player.Mark
+	//originGrid[player.Position] = player.Mark
 }
 
-// MoveUser will change the position of the user, if possible, in the provided Direction (d)
-func (player *User) MoveUser(d Direction) {
+// MoveUser will change the position of the user, if possible, in the provided Move (d)
+func (player *User) MoveUser(d Move) {
 	switch d {
-	case Left:
+	case MoveLeft:
 		if player.Position%3 != 0 {
 			player.Position--
 		}
-	case Right:
+	case MoveRight:
 		if player.Position%3 != 2 {
 			player.Position++
 		}
-	case Up:
+	case MoveUp:
 		if math.Floor(float64(player.Position/3)) != 0 {
 			player.Position -= 3
 		}
-	case Down:
+	case MoveDown:
 		if math.Floor(float64(player.Position/3)) != 2 {
 			player.Position += 3
 		}
