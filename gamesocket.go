@@ -30,5 +30,4 @@ func setup_server(portNum int){
 
 // TODO Rewrite this to be clean
 func setup_client(portNum int){
-
 }

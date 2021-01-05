@@ -7,16 +7,7 @@ import (
 	"math"
 )
 
-type Move int
-const (
-	MoveLeft Move = 1 << iota
-	MoveRight
-	MoveUp
-	MoveDown
-	PlacePiece
-	Quit
-	FinishedMove
-)
+// -- Use the Protobuf values for Move Struct
 
 
 // ---- Game Variables
@@ -31,10 +22,6 @@ var currentPlayerIndex int = 0
 
 var running bool
 
-// Move State Carriers
-var lastMove Move
-
-
 type Game struct {
 	terminal *term.Term
 }
@@ -44,6 +31,8 @@ func (game *Game) InitGame() {
 
 	// Configure Terminal
 	term.RawMode(game.terminal)
+
+
 }
 func (game *Game) CloseGame() {
 	defer game.terminal.Close() // Defer is LIFO ordering, Close is last.
@@ -56,13 +45,15 @@ func (game *Game) gameLoop() {
 	running = true
 	draw()
 
+	// Setup Game input
+	go setup_server(7777)
+
 	go handleKeyEvents(game.terminal)
 	for running {
 		currentMove := <- outstandingMoves
 		update(currentMove)
 
 		draw()
-		outstandingMoves <- FinishedMove
 	}
 }
 
@@ -72,21 +63,21 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove Move){
 
 	// TODO Fix this to deal with corner's better. If top left and bottom right are only left, cannot jump between.
 	for{
-		if (tmpPosition%3 == 0 && MoveLeft == currentMove) ||
-			(tmpPosition%3 == 2 && MoveRight == currentMove) ||
-			(math.Floor(float64(tmpPosition/3)) == 0 && MoveUp == currentMove) ||
-			(math.Floor(float64(tmpPosition/3)) == 2 && MoveDown == currentMove){
+		if (tmpPosition%3 == 0 && Move_Left == currentMove) ||
+			(tmpPosition%3 == 2 && Move_Right == currentMove) ||
+			(math.Floor(float64(tmpPosition/3)) == 0 && Move_Up == currentMove) ||
+			(math.Floor(float64(tmpPosition/3)) == 2 && Move_Down == currentMove){
 			return
 		}
 
 		switch currentMove {
-		case MoveLeft:
+		case Move_Left:
 				tmpPosition--
-		case MoveRight:
+		case Move_Right:
 				tmpPosition++
-		case MoveUp:
+		case Move_Up:
 				tmpPosition -= 3
-		case MoveDown:
+		case Move_Down:
 				tmpPosition += 3
 		default:
 			println("Error has occurred in the move user function.")
@@ -104,9 +95,9 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove Move){
 func update(currentMove Move) {
 
 	currentPlayer := players[currentPlayerIndex]
-	if currentMove == Quit{
+	if currentMove == Move_Quit{
 		running = false
-	}else if currentMove == PlacePiece{
+	}else if currentMove == Move_PlaceMark{
 		lg.PlaceMark(currentPlayer)
 		if checkWinner(currentPlayer){
 			//TODO Break and start closing sequence
@@ -133,7 +124,7 @@ func draw() {
 // ---- Check Winner Functionality
 func  checkWinner(user *User)(bool) {
 	if columnsComplete(lg) || rowsComplete(lg) || diagComplete(lg) || antiDiagComplete(lg){
-		// Winnner is found
+		// Winner is found
 		log.Print("WINNER WAS FOUND")
 		return true
 	}
