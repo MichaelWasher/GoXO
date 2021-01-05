@@ -20,9 +20,9 @@ var SPACE_KEY = []byte{32}
 var Q_KEY = []byte{113}
 var CTRL_C_KEYS = []byte{3}
 
-func handleKeyEvents() {
-	for(running) {
-		c := getch()
+func handleKeyEvents(terminal *term.Term) {
+	for running {
+		c := getch(terminal)
 
 		switch {
 		// TODO Add quit functionality
@@ -53,13 +53,9 @@ func handleKeyEvents() {
 }
 
 
-func getch() []byte {
-	t, _ := term.Open("/dev/tty")
-	term.RawMode(t)
+func getch(terminal *term.Term) []byte {
 	bytes := make([]byte, 3)
-	numRead, err := t.Read(bytes)
-	t.Restore()
-	t.Close()
+	numRead, err := terminal.Read(bytes)
 	if err != nil {
 		return nil
 	}

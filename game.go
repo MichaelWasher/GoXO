@@ -1,7 +1,8 @@
 package main
 
 import (
-	tm "github.com/buger/goterm"
+	"fmt"
+	"github.com/pkg/term"
 	"log"
 	"math"
 )
@@ -34,13 +35,28 @@ var running bool
 var lastMove Move
 
 
+type Game struct {
+	terminal *term.Term
+}
+
+func (game *Game) InitGame() {
+	game.terminal, _ = term.Open("/dev/tty")
+
+	// Configure Terminal
+	term.RawMode(game.terminal)
+}
+func (game *Game) CloseGame() {
+	defer game.terminal.Close() // Defer is LIFO ordering, Close is last.
+	defer game.terminal.Restore()
+}
 // Core Game Loop
 var outstandingMoves = make(chan Move)
-func gameLoop() {
+
+func (game *Game) gameLoop() {
 	running = true
 	draw()
 
-	go handleKeyEvents()
+	go handleKeyEvents(game.terminal)
 	for running {
 		currentMove := <- outstandingMoves
 		update(currentMove)
@@ -107,13 +123,10 @@ func update(currentMove Move) {
 func draw() {
 	lg.draw([]*User{players[currentPlayerIndex]})
 	//-- Draw Statistics
-	statsTemplate := `
-Player Name: %s
-Current Position: %d`
+	statsTemplate := "Player Name: %s\r\nCurrent Position: %d\r\n"
 	for _, player := range players{
-		tm.Printf(statsTemplate, player.Name, player.Position)
+		fmt.Printf(statsTemplate, player.Name, player.Position)
 	}
-	tm.Flush()
 }
 
 
