@@ -1,21 +1,12 @@
 package main
 
 import (
-	tm "github.com/buger/goterm"
+	"fmt"
 	"log"
 	"math"
 )
 
-type Move int
-const (
-	MoveLeft Move = 1 << iota
-	MoveRight
-	MoveUp
-	MoveDown
-	PlacePiece
-	Quit
-	FinishedMove
-)
+// -- Use the Protobuf values for Move Struct
 
 
 // ---- Game Variables
@@ -42,7 +33,6 @@ func gameLoop() {
 		update(currentMove)
 
 		draw()
-		outstandingMoves <- FinishedMove
 	}
 }
 
@@ -52,21 +42,21 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove Move){
 
 	// TODO Fix this to deal with corner's better. If top left and bottom right are only left, cannot jump between.
 	for{
-		if (tmpPosition%3 == 0 && MoveLeft == currentMove) ||
-			(tmpPosition%3 == 2 && MoveRight == currentMove) ||
-			(math.Floor(float64(tmpPosition/3)) == 0 && MoveUp == currentMove) ||
-			(math.Floor(float64(tmpPosition/3)) == 2 && MoveDown == currentMove){
+		if (tmpPosition%3 == 0 && Move_Left == currentMove) ||
+			(tmpPosition%3 == 2 && Move_Right == currentMove) ||
+			(math.Floor(float64(tmpPosition/3)) == 0 && Move_Up == currentMove) ||
+			(math.Floor(float64(tmpPosition/3)) == 2 && Move_Down == currentMove){
 			return
 		}
 
 		switch currentMove {
-		case MoveLeft:
+		case Move_Left:
 				tmpPosition--
-		case MoveRight:
+		case Move_Right:
 				tmpPosition++
-		case MoveUp:
+		case Move_Up:
 				tmpPosition -= 3
-		case MoveDown:
+		case Move_Down:
 				tmpPosition += 3
 		default:
 			println("Error has occurred in the move user function.")
@@ -84,9 +74,9 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove Move){
 func update(currentMove Move) {
 
 	currentPlayer := players[currentPlayerIndex]
-	if currentMove == Quit{
+	if currentMove == Move_Quit{
 		running = false
-	}else if currentMove == PlacePiece{
+	}else if currentMove == Move_Quit{
 		lg.PlaceMark(currentPlayer)
 		if checkWinner(currentPlayer){
 			//TODO Break and start closing sequence
@@ -103,20 +93,18 @@ func update(currentMove Move) {
 func draw() {
 	lg.draw([]*User{players[currentPlayerIndex]})
 	//-- Draw Statistics
-	statsTemplate := `
-Player Name: %s
-Current Position: %d`
+	statsTemplate := "Player Name: %s\r\nCurrent Position: %d\r\n"
 	for _, player := range players{
-		tm.Printf(statsTemplate, player.Name, player.Position)
+		fmt.Printf(statsTemplate, player.Name, player.Position)
 	}
-	tm.Flush()
+
 }
 
 
 // ---- Check Winner Functionality
 func  checkWinner(user *User)(bool) {
 	if columnsComplete(lg) || rowsComplete(lg) || diagComplete(lg) || antiDiagComplete(lg){
-		// Winnner is found
+		// Winner is found
 		log.Print("WINNER WAS FOUND")
 		return true
 	}

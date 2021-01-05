@@ -2,21 +2,20 @@ package main
 
 import (
 	"errors"
-	tm "github.com/buger/goterm"
+	"fmt"
 	"log"
 	"math"
 )
 
 // --- Constants
-const GRID_TEMPLATE = `
--------------
-| %s | %s | %s |
--------------
-| %s | %s | %s |
--------------
-| %s | %s | %s |
--------------
-`
+const GRID_TEMPLATE = ""   + // NOTE: Requires manual `\r\n` as terminal will be in RAW mode and not pre-baked / cooked
+	"-------------\r\n"    +
+	"| %s | %s | %s |\r\n" +
+	"-------------\r\n"    +
+	"| %s | %s | %s |\r\n" +
+	"-------------\r\n"    +
+	"| %s | %s | %s |\r\n" +
+	"-------------\r\n"
 
 // ---- Structures
 const RowCount int = 3
@@ -113,8 +112,8 @@ func (lg *LogicGrid) PlaceMark(player *User) error {
 // Draw all elements on to the Screen
 func (lg LogicGrid) draw(players []*User) {
 	// Clear current screen
-	tm.Clear()
-	tm.MoveCursor(0, 0)
+	// TODO this does not have cross-platform support
+	fmt.Print("\033[H\033[2J")
 
 	// Get Grid for Display
 	displayGrid := lg.getDisplayGrid()
@@ -125,6 +124,5 @@ func (lg LogicGrid) draw(players []*User) {
 	}
 
 	// Print all Elements
-	tm.Printf(GRID_TEMPLATE, displayGrid...)
-	tm.Flush()
+	fmt.Printf(GRID_TEMPLATE, displayGrid...)
 }

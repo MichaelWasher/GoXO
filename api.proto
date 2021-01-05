@@ -6,20 +6,22 @@ package main;
 message Empty{
 }
 
+enum Move {
+    Noop = 0;
+    Left = 1;
+    Right = 2;
+    Up = 3;
+    Down = 4;
+    PlaceMark = 5;
+    Quit = 6;
+}
+
 // Start Message Definitions
 message MoveMessage {
-  enum MoveEnum {
-    NOOP = 0;
-    MOVE_LEFT = 1;
-    MOVE_RIGHT = 2;
-    MOVE_UP = 3;
-    MOVE_DOWN = 4;
-    PLACE_MARK = 5;
-  }
-  MoveEnum moveRequest = 1;
+  Move moveRequest = 1;
 }
 
 // Start Service Definitions
-service RequestMove{
+service MoveService{
   rpc PerformMove(MoveMessage) returns (Empty) {}
 }

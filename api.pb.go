@@ -31,62 +31,65 @@ const (
 // of the legacy proto package is being used.
 const _ = proto.ProtoPackageIsVersion4
 
-type MoveMessage_MoveEnum int32
+type Move int32
 
 const (
-	MoveMessage_NOOP       MoveMessage_MoveEnum = 0
-	MoveMessage_MOVE_LEFT  MoveMessage_MoveEnum = 1
-	MoveMessage_MOVE_RIGHT MoveMessage_MoveEnum = 2
-	MoveMessage_MOVE_UP    MoveMessage_MoveEnum = 3
-	MoveMessage_MOVE_DOWN  MoveMessage_MoveEnum = 4
-	MoveMessage_PLACE_MARK MoveMessage_MoveEnum = 5
+	Move_Noop      Move = 0
+	Move_Left      Move = 1
+	Move_Right     Move = 2
+	Move_Up        Move = 3
+	Move_Down      Move = 4
+	Move_PlaceMark Move = 5
+	Move_Quit      Move = 6
 )
 
-// Enum value maps for MoveMessage_MoveEnum.
+// Enum value maps for Move.
 var (
-	MoveMessage_MoveEnum_name = map[int32]string{
-		0: "NOOP",
-		1: "MOVE_LEFT",
-		2: "MOVE_RIGHT",
-		3: "MOVE_UP",
-		4: "MOVE_DOWN",
-		5: "PLACE_MARK",
+	Move_name = map[int32]string{
+		0: "Noop",
+		1: "Left",
+		2: "Right",
+		3: "Up",
+		4: "Down",
+		5: "PlaceMark",
+		6: "Quit",
 	}
-	MoveMessage_MoveEnum_value = map[string]int32{
-		"NOOP":       0,
-		"MOVE_LEFT":  1,
-		"MOVE_RIGHT": 2,
-		"MOVE_UP":    3,
-		"MOVE_DOWN":  4,
-		"PLACE_MARK": 5,
+	Move_value = map[string]int32{
+		"Noop":      0,
+		"Left":      1,
+		"Right":     2,
+		"Up":        3,
+		"Down":      4,
+		"PlaceMark": 5,
+		"Quit":      6,
 	}
 )
 
-func (x MoveMessage_MoveEnum) Enum() *MoveMessage_MoveEnum {
-	p := new(MoveMessage_MoveEnum)
+func (x Move) Enum() *Move {
+	p := new(Move)
 	*p = x
 	return p
 }
 
-func (x MoveMessage_MoveEnum) String() string {
+func (x Move) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (MoveMessage_MoveEnum) Descriptor() protoreflect.EnumDescriptor {
+func (Move) Descriptor() protoreflect.EnumDescriptor {
 	return file_api_proto_enumTypes[0].Descriptor()
 }
 
-func (MoveMessage_MoveEnum) Type() protoreflect.EnumType {
+func (Move) Type() protoreflect.EnumType {
 	return &file_api_proto_enumTypes[0]
 }
 
-func (x MoveMessage_MoveEnum) Number() protoreflect.EnumNumber {
+func (x Move) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use MoveMessage_MoveEnum.Descriptor instead.
-func (MoveMessage_MoveEnum) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_rawDescGZIP(), []int{1, 0}
+// Deprecated: Use Move.Descriptor instead.
+func (Move) EnumDescriptor() ([]byte, []int) {
+	return file_api_proto_rawDescGZIP(), []int{0}
 }
 
 type Empty struct {
@@ -133,7 +136,7 @@ type MoveMessage struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	MoveRequest MoveMessage_MoveEnum `protobuf:"varint,1,opt,name=moveRequest,proto3,enum=main.MoveMessage_MoveEnum" json:"moveRequest,omitempty"`
+	MoveRequest Move `protobuf:"varint,1,opt,name=moveRequest,proto3,enum=main.Move" json:"moveRequest,omitempty"`
 }
 
 func (x *MoveMessage) Reset() {
@@ -168,30 +171,28 @@ func (*MoveMessage) Descriptor() ([]byte, []int) {
 	return file_api_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *MoveMessage) GetMoveRequest() MoveMessage_MoveEnum {
+func (x *MoveMessage) GetMoveRequest() Move {
 	if x != nil {
 		return x.MoveRequest
 	}
-	return MoveMessage_NOOP
+	return Move_Noop
 }
 
 var File_api_proto protoreflect.FileDescriptor
 
 var file_api_proto_rawDesc = []byte{
 	0x0a, 0x09, 0x61, 0x70, 0x69, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x04, 0x6d, 0x61, 0x69,
-	0x6e, 0x22, 0x07, 0x0a, 0x05, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x22, 0xac, 0x01, 0x0a, 0x0b, 0x4d,
-	0x6f, 0x76, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x3c, 0x0a, 0x0b, 0x6d, 0x6f,
-	0x76, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32,
-	0x1a, 0x2e, 0x6d, 0x61, 0x69, 0x6e, 0x2e, 0x4d, 0x6f, 0x76, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61,
-	0x67, 0x65, 0x2e, 0x4d, 0x6f, 0x76, 0x65, 0x45, 0x6e, 0x75, 0x6d, 0x52, 0x0b, 0x6d, 0x6f, 0x76,
-	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x5f, 0x0a, 0x08, 0x4d, 0x6f, 0x76, 0x65,
-	0x45, 0x6e, 0x75, 0x6d, 0x12, 0x08, 0x0a, 0x04, 0x4e, 0x4f, 0x4f, 0x50, 0x10, 0x00, 0x12, 0x0d,
-	0x0a, 0x09, 0x4d, 0x4f, 0x56, 0x45, 0x5f, 0x4c, 0x45, 0x46, 0x54, 0x10, 0x01, 0x12, 0x0e, 0x0a,
-	0x0a, 0x4d, 0x4f, 0x56, 0x45, 0x5f, 0x52, 0x49, 0x47, 0x48, 0x54, 0x10, 0x02, 0x12, 0x0b, 0x0a,
-	0x07, 0x4d, 0x4f, 0x56, 0x45, 0x5f, 0x55, 0x50, 0x10, 0x03, 0x12, 0x0d, 0x0a, 0x09, 0x4d, 0x4f,
-	0x56, 0x45, 0x5f, 0x44, 0x4f, 0x57, 0x4e, 0x10, 0x04, 0x12, 0x0e, 0x0a, 0x0a, 0x50, 0x4c, 0x41,
-	0x43, 0x45, 0x5f, 0x4d, 0x41, 0x52, 0x4b, 0x10, 0x05, 0x32, 0x3e, 0x0a, 0x0b, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x4d, 0x6f, 0x76, 0x65, 0x12, 0x2f, 0x0a, 0x0b, 0x50, 0x65, 0x72, 0x66,
+	0x6e, 0x22, 0x07, 0x0a, 0x05, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x22, 0x3b, 0x0a, 0x0b, 0x4d, 0x6f,
+	0x76, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x2c, 0x0a, 0x0b, 0x6d, 0x6f, 0x76,
+	0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x0a,
+	0x2e, 0x6d, 0x61, 0x69, 0x6e, 0x2e, 0x4d, 0x6f, 0x76, 0x65, 0x52, 0x0b, 0x6d, 0x6f, 0x76, 0x65,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2a, 0x50, 0x0a, 0x04, 0x4d, 0x6f, 0x76, 0x65, 0x12,
+	0x08, 0x0a, 0x04, 0x4e, 0x6f, 0x6f, 0x70, 0x10, 0x00, 0x12, 0x08, 0x0a, 0x04, 0x4c, 0x65, 0x66,
+	0x74, 0x10, 0x01, 0x12, 0x09, 0x0a, 0x05, 0x52, 0x69, 0x67, 0x68, 0x74, 0x10, 0x02, 0x12, 0x06,
+	0x0a, 0x02, 0x55, 0x70, 0x10, 0x03, 0x12, 0x08, 0x0a, 0x04, 0x44, 0x6f, 0x77, 0x6e, 0x10, 0x04,
+	0x12, 0x0d, 0x0a, 0x09, 0x50, 0x6c, 0x61, 0x63, 0x65, 0x4d, 0x61, 0x72, 0x6b, 0x10, 0x05, 0x12,
+	0x08, 0x0a, 0x04, 0x51, 0x75, 0x69, 0x74, 0x10, 0x06, 0x32, 0x3e, 0x0a, 0x0b, 0x4d, 0x6f, 0x76,
+	0x65, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x2f, 0x0a, 0x0b, 0x50, 0x65, 0x72, 0x66,
 	0x6f, 0x72, 0x6d, 0x4d, 0x6f, 0x76, 0x65, 0x12, 0x11, 0x2e, 0x6d, 0x61, 0x69, 0x6e, 0x2e, 0x4d,
 	0x6f, 0x76, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x1a, 0x0b, 0x2e, 0x6d, 0x61, 0x69,
 	0x6e, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x22, 0x00, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
@@ -213,14 +214,14 @@ func file_api_proto_rawDescGZIP() []byte {
 var file_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_api_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_api_proto_goTypes = []interface{}{
-	(MoveMessage_MoveEnum)(0), // 0: main.MoveMessage.MoveEnum
-	(*Empty)(nil),             // 1: main.Empty
-	(*MoveMessage)(nil),       // 2: main.MoveMessage
+	(Move)(0),           // 0: main.Move
+	(*Empty)(nil),       // 1: main.Empty
+	(*MoveMessage)(nil), // 2: main.MoveMessage
 }
 var file_api_proto_depIdxs = []int32{
-	0, // 0: main.MoveMessage.moveRequest:type_name -> main.MoveMessage.MoveEnum
-	2, // 1: main.RequestMove.PerformMove:input_type -> main.MoveMessage
-	1, // 2: main.RequestMove.PerformMove:output_type -> main.Empty
+	0, // 0: main.MoveMessage.moveRequest:type_name -> main.Move
+	2, // 1: main.MoveService.PerformMove:input_type -> main.MoveMessage
+	1, // 2: main.MoveService.PerformMove:output_type -> main.Empty
 	2, // [2:3] is the sub-list for method output_type
 	1, // [1:2] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -288,72 +289,72 @@ var _ grpc.ClientConnInterface
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion6
 
-// RequestMoveClient is the client API for RequestMove service.
+// MoveServiceClient is the client API for MoveService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
-type RequestMoveClient interface {
+type MoveServiceClient interface {
 	PerformMove(ctx context.Context, in *MoveMessage, opts ...grpc.CallOption) (*Empty, error)
 }
 
-type requestMoveClient struct {
+type moveServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewRequestMoveClient(cc grpc.ClientConnInterface) RequestMoveClient {
-	return &requestMoveClient{cc}
+func NewMoveServiceClient(cc grpc.ClientConnInterface) MoveServiceClient {
+	return &moveServiceClient{cc}
 }
 
-func (c *requestMoveClient) PerformMove(ctx context.Context, in *MoveMessage, opts ...grpc.CallOption) (*Empty, error) {
+func (c *moveServiceClient) PerformMove(ctx context.Context, in *MoveMessage, opts ...grpc.CallOption) (*Empty, error) {
 	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/main.RequestMove/PerformMove", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/main.MoveService/PerformMove", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// RequestMoveServer is the server API for RequestMove service.
-type RequestMoveServer interface {
+// MoveServiceServer is the server API for MoveService service.
+type MoveServiceServer interface {
 	PerformMove(context.Context, *MoveMessage) (*Empty, error)
 }
 
-// UnimplementedRequestMoveServer can be embedded to have forward compatible implementations.
-type UnimplementedRequestMoveServer struct {
+// UnimplementedMoveServiceServer can be embedded to have forward compatible implementations.
+type UnimplementedMoveServiceServer struct {
 }
 
-func (*UnimplementedRequestMoveServer) PerformMove(context.Context, *MoveMessage) (*Empty, error) {
+func (*UnimplementedMoveServiceServer) PerformMove(context.Context, *MoveMessage) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PerformMove not implemented")
 }
 
-func RegisterRequestMoveServer(s *grpc.Server, srv RequestMoveServer) {
-	s.RegisterService(&_RequestMove_serviceDesc, srv)
+func RegisterMoveServiceServer(s *grpc.Server, srv MoveServiceServer) {
+	s.RegisterService(&_MoveService_serviceDesc, srv)
 }
 
-func _RequestMove_PerformMove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _MoveService_PerformMove_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MoveMessage)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RequestMoveServer).PerformMove(ctx, in)
+		return srv.(MoveServiceServer).PerformMove(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/main.RequestMove/PerformMove",
+		FullMethod: "/main.MoveService/PerformMove",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RequestMoveServer).PerformMove(ctx, req.(*MoveMessage))
+		return srv.(MoveServiceServer).PerformMove(ctx, req.(*MoveMessage))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-var _RequestMove_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "main.RequestMove",
-	HandlerType: (*RequestMoveServer)(nil),
+var _MoveService_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "main.MoveService",
+	HandlerType: (*MoveServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "PerformMove",
-			Handler:    _RequestMove_PerformMove_Handler,
+			Handler:    _MoveService_PerformMove_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

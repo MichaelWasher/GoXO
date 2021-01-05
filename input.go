@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/pkg/term"
 	"log"
 )
 
@@ -29,37 +28,33 @@ func handleKeyEvents() {
 		// TODO Add quit functionality
 		case bytes.Equal(c, LEFT_KEY) || bytes.Equal(c, A_KEY): // left
 			log.Print("LEFT pressed")
-			outstandingMoves <- MoveLeft
+			outstandingMoves <- Move_Left
 		case bytes.Equal(c, RIGHT_KEY) || bytes.Equal(c, D_KEY): // right
 			log.Print("RIGHT pressed")
-			outstandingMoves <- MoveRight
+			outstandingMoves <- Move_Right
 		case bytes.Equal(c, UP_KEY) || bytes.Equal(c, W_KEY): // up
 			log.Print("UP pressed")
-			outstandingMoves <- MoveUp
+			outstandingMoves <- Move_Up
 		case bytes.Equal(c, DOWN_KEY) || bytes.Equal(c, S_KEY): // down
 			log.Print("DOWN pressed")
-			outstandingMoves <- MoveDown
+			outstandingMoves <- Move_Down
 		case bytes.Equal(c, SPACE_KEY): // Place key
 			log.Print("SPACE pressed")
-			outstandingMoves <- PlacePiece
+			outstandingMoves <- Move_PlaceMark
 		case bytes.Equal(c, Q_KEY) || bytes.Equal(c, CTRL_C_KEYS):
-			outstandingMoves <- Quit
+			outstandingMoves <- Move_Quit
 			break
 		default:
 			fmt.Println("Unknown pressed", c)
 			continue
 		}
-		<- outstandingMoves
 	}
 }
 
 func getch() []byte {
-	t, _ := term.Open("/dev/tty")
-	term.RawMode(t)
 	bytes := make([]byte, 3)
-	numRead, err := t.Read(bytes)
-	t.Restore()
-	t.Close()
+	numRead, err := terminal.Read(bytes)
+
 	if err != nil {
 		return nil
 	}
