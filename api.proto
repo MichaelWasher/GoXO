@@ -1,0 +1,25 @@
+// Start Header
+
+syntax = "proto3";
+package main;
+
+message Empty{
+}
+
+// Start Message Definitions
+message MoveMessage {
+  enum MoveEnum {
+    NOOP = 0;
+    MOVE_LEFT = 1;
+    MOVE_RIGHT = 2;
+    MOVE_UP = 3;
+    MOVE_DOWN = 4;
+    PLACE_MARK = 5;
+  }
+  MoveEnum moveRequest = 1;
+}
+
+// Start Service Definitions
+service RequestMove{
+  rpc PerformMove(MoveMessage) returns (Empty) {}
+}

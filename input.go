@@ -20,6 +20,7 @@ var SPACE_KEY = []byte{32}
 var Q_KEY = []byte{113}
 var CTRL_C_KEYS = []byte{3}
 
+// ---- Handle the Key events and hand off to the game routine
 func handleKeyEvents() {
 	for(running) {
 		c := getch()
@@ -51,7 +52,6 @@ func handleKeyEvents() {
 		<- outstandingMoves
 	}
 }
-
 
 func getch() []byte {
 	t, _ := term.Open("/dev/tty")

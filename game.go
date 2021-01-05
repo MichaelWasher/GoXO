@@ -26,18 +26,14 @@ var player1 = User{Position: 0, Character: "Y", Mark: "X", Name: "Player1"}
 var player2 = User{Position: 8, Character: "Y", Mark: "0", Name: "Player2"}
 var players = []*User{&player1, &player2}
 
-var currentPlayerIndex int = 0
-
-var running bool
-
-// Move State Carriers
-var lastMove Move
-
-
 // Core Game Loop
 var outstandingMoves = make(chan Move)
+var currentPlayerIndex int = 0
+var running bool
+
 func gameLoop() {
 	running = true
+	// Initial Draw
 	draw()
 
 	go handleKeyEvents()
@@ -147,7 +143,7 @@ func columnsComplete(lg LogicGrid) bool{
 			return true
 		}
 	}
-	log.Printf("Colmns not complete")
+	log.Printf("Columns not complete")
 	return false
 }
 
