@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 )
 
 // --- Constants
-const GRID_TEMPLATE = ""   + // NOTE: Requires manual `\r\n` as terminal will be in RAW mode and not pre-baked / cooked
+const GRID_TEMPLATE = ""   + // NOTE: Requires manual `\r\n` as Terminal will be in RAW mode and not pre-baked / cooked
 	"-------------\r\n"    +
 	"| %s | %s | %s |\r\n" +
 	"-------------\r\n"    +

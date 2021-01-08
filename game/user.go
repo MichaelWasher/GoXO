@@ -1,4 +1,4 @@
-package main
+package game
 
 // User represents a single player within the game grid
 type User struct {
@@ -6,4 +6,5 @@ type User struct {
 	Character string
 	Mark      string
 	Name string
+	InputChannel chan Move
 }

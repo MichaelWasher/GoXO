@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"fmt"
@@ -20,40 +20,50 @@ var players = []*User{&player1, &player2}
 
 var currentPlayerIndex int = 0
 
-var running bool
+
+type Move int32
+
+const (
+	//Move_Noop      Move = 0
+	Move_Left      Move = 1
+	Move_Right     Move = 2
+	Move_Up        Move = 3
+	Move_Down      Move = 4
+	Move_PlaceMark Move = 5
+	Move_Quit      Move = 6
+)
+
 
 type Game struct {
-	terminal *term.Term
+	Terminal *term.Term
+	Running  bool
 }
 
 func (game *Game) InitGame() {
-	game.terminal, _ = term.Open("/dev/tty")
+	game.Terminal, _ = term.Open("/dev/tty")
 
 	// Configure Terminal
-	term.RawMode(game.terminal)
+	term.RawMode(game.Terminal)
 
 
 }
 func (game *Game) CloseGame() {
-	defer game.terminal.Close() // Defer is LIFO ordering, Close is last.
-	defer game.terminal.Restore()
+	defer game.Terminal.Close() // Defer is LIFO ordering, Close is last.
+	defer game.Terminal.Restore()
 }
 // Core Game Loop
-var outstandingMoves = make(chan Move)
+var OutstandingMoves = make(chan Move)
 
-func (game *Game) gameLoop() {
-	running = true
-	draw()
+func (game *Game) GameLoop() {
+	game.Running = true
+	game.draw()
 
-	// Setup Game input
-	go setup_server(7777)
-
-	go handleKeyEvents(game.terminal)
-	for running {
-		currentMove := <- outstandingMoves
-		update(currentMove)
-
-		draw()
+	//// Setup Game input
+	for game.Running {
+		currentMove := <- OutstandingMoves
+		// Iterate Game States
+		game.update(currentMove)
+		game.draw()
 	}
 }
 
@@ -92,14 +102,14 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove Move){
 
 }
 
-func update(currentMove Move) {
+func (game *Game) update(currentMove Move) {
 
 	currentPlayer := players[currentPlayerIndex]
 	if currentMove == Move_Quit{
-		running = false
+		game.Running = false
 	}else if currentMove == Move_PlaceMark{
 		lg.PlaceMark(currentPlayer)
-		if checkWinner(currentPlayer){
+		if game.checkWinner(currentPlayer){
 			//TODO Break and start closing sequence
 
 		}
@@ -111,7 +121,7 @@ func update(currentMove Move) {
 
 }
 
-func draw() {
+func (game *Game) draw() {
 	lg.draw([]*User{players[currentPlayerIndex]})
 	//-- Draw Statistics
 	statsTemplate := "Player Name: %s\r\nCurrent Position: %d\r\n"
@@ -122,7 +132,7 @@ func draw() {
 
 
 // ---- Check Winner Functionality
-func  checkWinner(user *User)(bool) {
+func (game *Game) checkWinner(user *User)(bool) {
 	if columnsComplete(lg) || rowsComplete(lg) || diagComplete(lg) || antiDiagComplete(lg){
 		// Winner is found
 		log.Print("WINNER WAS FOUND")

@@ -6,7 +6,7 @@
 // 	protoc        v3.14.0
 // source: api.proto
 
-package main
+package grpc
 
 import (
 	context "context"

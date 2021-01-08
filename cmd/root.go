@@ -13,33 +13,27 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package main
+package cmd
 
 import (
-	"log"
+	"fmt"
+	"github.com/spf13/cobra"
 	"os"
-	cmd "github.com/MichaelWasher/GoXO/cmd"
 )
 
-// TODO Add Multiplayer Support
-// TODO Add Socket Support for Multiple Player Input
-// TODO Flags for the Socket Connection
-// TODO Implement CLI Options
+var cfgFile string
 
-// Configure Logging
-func initLog() *os.File{
-	f, err := os.OpenFile("log-file.txt", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-
-	log.SetOutput(f)
-	log.Println("This is a test log entry")
-	return f
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
+	Use:   "goxo",
+	Short: "A simple noughts and crosses game written in Go",
 }
 
-func main() {
-	file := initLog()
-	defer file.Close()
-	cmd.Execute()
+// Execute adds all child commands to the root command and sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }

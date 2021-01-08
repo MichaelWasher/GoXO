@@ -16,4 +16,5 @@ vendor/
 bin/
 .DS_STORE
 log-file.txt
-*.pb.go
+.idea
+go.sum

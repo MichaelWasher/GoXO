@@ -13,33 +13,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package main
+package cmd
 
 import (
-	"log"
-	"os"
-	cmd "github.com/MichaelWasher/GoXO/cmd"
+	"fmt"
+	"github.com/spf13/cobra"
 )
 
-// TODO Add Multiplayer Support
-// TODO Add Socket Support for Multiple Player Input
-// TODO Flags for the Socket Connection
-// TODO Implement CLI Options
-
-// Configure Logging
-func initLog() *os.File{
-	f, err := os.OpenFile("log-file.txt", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
-
-	log.SetOutput(f)
-	log.Println("This is a test log entry")
-	return f
+// clientCmd represents the client command
+var clientCmd = &cobra.Command{
+	Use:   "client",
+	Short: "Connect to a game of GoXO",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("client called")
+	},
 }
 
-func main() {
-	file := initLog()
-	defer file.Close()
-	cmd.Execute()
+func init() {
+	rootCmd.AddCommand(clientCmd)
+	// TODO add client Details
 }

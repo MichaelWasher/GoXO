@@ -13,33 +13,32 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package main
+package cmd
 
 import (
-	"log"
-	"os"
-	cmd "github.com/MichaelWasher/GoXO/cmd"
+	"fmt"
+	gameproject "github.com/MichaelWasher/GoXO/game"
+	"github.com/MichaelWasher/GoXO/input"
+	"github.com/spf13/cobra"
 )
 
-// TODO Add Multiplayer Support
-// TODO Add Socket Support for Multiple Player Input
-// TODO Flags for the Socket Connection
-// TODO Implement CLI Options
+// localCmd represents the local command
+var localCmd = &cobra.Command{
+	Use:   "local",
+	Short: "Start a local game of GoXO and alternate between player turns",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("local called")
+		game := gameproject.Game{}
+		game.InitGame()
+		defer game.CloseGame()
 
-// Configure Logging
-func initLog() *os.File{
-	f, err := os.OpenFile("log-file.txt", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("error opening file: %v", err)
-	}
+		go input.HandleKeyEvents(&game)
 
-	log.SetOutput(f)
-	log.Println("This is a test log entry")
-	return f
+		game.GameLoop()
+
+	},
 }
 
-func main() {
-	file := initLog()
-	defer file.Close()
-	cmd.Execute()
+func init() {
+	rootCmd.AddCommand(localCmd)
 }

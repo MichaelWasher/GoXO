@@ -1,8 +1,9 @@
-package main
+package input
 
 import (
 	"bytes"
 	"fmt"
+	. "github.com/MichaelWasher/GoXO/game"
 	"github.com/pkg/term"
 	"log"
 )
@@ -20,29 +21,29 @@ var SPACE_KEY = []byte{32}
 var Q_KEY = []byte{113}
 var CTRL_C_KEYS = []byte{3}
 
-func handleKeyEvents(terminal *term.Term) {
-	for running {
-		c := getch(terminal)
+func HandleKeyEvents(game *Game) {
+	for game.Running {
+		c := getch(game.Terminal)
 
 		switch {
 		// TODO Add quit functionality
 		case bytes.Equal(c, LEFT_KEY) || bytes.Equal(c, A_KEY): // left
 			log.Print("LEFT pressed")
-			outstandingMoves <- Move_Left
+			OutstandingMoves <- Move_Left
 		case bytes.Equal(c, RIGHT_KEY) || bytes.Equal(c, D_KEY): // right
 			log.Print("RIGHT pressed")
-			outstandingMoves <- Move_Right
+			OutstandingMoves <- Move_Right
 		case bytes.Equal(c, UP_KEY) || bytes.Equal(c, W_KEY): // up
 			log.Print("UP pressed")
-			outstandingMoves <- Move_Up
+			OutstandingMoves <- Move_Up
 		case bytes.Equal(c, DOWN_KEY) || bytes.Equal(c, S_KEY): // down
 			log.Print("DOWN pressed")
-			outstandingMoves <- Move_Down
+			OutstandingMoves <- Move_Down
 		case bytes.Equal(c, SPACE_KEY): // Place key
 			log.Print("SPACE pressed")
-			outstandingMoves <- Move_PlaceMark
+			OutstandingMoves <- Move_PlaceMark
 		case bytes.Equal(c, Q_KEY) || bytes.Equal(c, CTRL_C_KEYS):
-			outstandingMoves <- Move_Quit
+			OutstandingMoves <- Move_Quit
 			break
 		default:
 			fmt.Println("Unknown pressed", c)
