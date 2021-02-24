@@ -18,7 +18,8 @@ package main
 import (
 	"log"
 	"os"
-	cmd "github.com/MichaelWasher/GoXO/cmd"
+
+	cmd "github.com/MichaelWasher/GoXO/pkg/cmd"
 )
 
 // TODO Add Multiplayer Support
@@ -27,14 +28,12 @@ import (
 // TODO Implement CLI Options
 
 // Configure Logging
-func initLog() *os.File{
-	f, err := os.OpenFile("log-file.txt", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+func initLog() *os.File {
+	f, err := os.OpenFile("log-file.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
-
 	log.SetOutput(f)
-	log.Println("This is a test log entry")
 	return f
 }
 

@@ -16,9 +16,10 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	gameproject "github.com/MichaelWasher/GoXO/game"
-	"github.com/MichaelWasher/GoXO/input"
+	"log"
+
+	. "github.com/MichaelWasher/GoXO/pkg/game"
+	"github.com/MichaelWasher/GoXO/pkg/io"
 	"github.com/spf13/cobra"
 )
 
@@ -27,14 +28,24 @@ var localCmd = &cobra.Command{
 	Use:   "local",
 	Short: "Start a local game of GoXO and alternate between player turns",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("local called")
-		game := gameproject.Game{}
-		game.InitGame()
+		log.Println("Starting the GoXO Local Game")
+
+		// Configure Inputs
+
+		terminal := io.NewTerminal()
+		defer terminal.Close() // Defer is LIFO ordering, Close is last.
+		// defer terminal.Restore()
+		log.Println("Using Terminal as input")
+
+		// Create the Game
+		log.Println("Game Created")
+		game := NewGame(terminal, terminal)
 		defer game.CloseGame()
 
-		go input.HandleKeyEvents(&game)
-
+		// Configure Event Listeners
+		log.Println("GameLoop Started")
 		game.GameLoop()
+		log.Println("GameLoop Finished")
 
 	},
 }

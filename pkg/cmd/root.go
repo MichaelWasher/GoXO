@@ -17,32 +17,24 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/MichaelWasher/GoXO/grpc"
-	"github.com/MichaelWasher/GoXO/input"
+	"os"
+
 	"github.com/spf13/cobra"
-	gameproject "github.com/MichaelWasher/GoXO/game"
 )
 
-// serverCmd represents the server command
-var serverCmd = &cobra.Command{
-	Use:   "server",
-	Short: "Start a game of GoXO and host a server for others to join",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("server called")
-		game := gameproject.Game{}
-		game.InitGame()
-		defer game.CloseGame()
+var cfgFile string
 
-		go input.HandleKeyEvents(&game)
-		// TODO Set Args
-		go grpc.SetupServer(7777)
-
-		game.GameLoop()
-	},
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
+	Use:   "goxo",
+	Short: "A simple noughts and crosses game written in Go",
 }
 
-func init() {
-	rootCmd.AddCommand(serverCmd)
-
-
+// Execute adds all child commands to the root command and sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
