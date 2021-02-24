@@ -33,10 +33,10 @@ var serverCmd = &cobra.Command{
 		game.InitGame()
 		defer game.CloseGame()
 
-		go input.HandleKeyEvents(&game)
-		// TODO Set Args
-		go grpc.SetupServer(7777)
+		go input.HandleKeyEvents(game.Terminal, game.GetPlayerOneInputChannel())
 
+		// TODO Set Args
+		go grpc.SetupServer(7777, game.GetPlayerTwoInputChannel())
 		game.GameLoop()
 	},
 }

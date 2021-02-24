@@ -32,7 +32,7 @@ var localCmd = &cobra.Command{
 		game.InitGame()
 		defer game.CloseGame()
 
-		go input.HandleKeyEvents(&game)
+		go input.HandleKeyEvents(game.Terminal, game.GetPlayerOneInputChannel())
 
 		game.GameLoop()
 

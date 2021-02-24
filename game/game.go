@@ -5,6 +5,8 @@ import (
 	"github.com/pkg/term"
 	"log"
 	"math"
+	// TODO Work out the dependency into an interface
+	. "github.com/MichaelWasher/GoXO/grpc"
 )
 
 // -- Use the Protobuf values for Move Struct
@@ -13,30 +15,17 @@ import (
 // ---- Game Variables
 var lg LogicGrid = NewLogicGrid()
 
-// Users
-var player1 = User{Position: 0, Character: "Y", Mark: "X", Name: "Player1"}
-var player2 = User{Position: 8, Character: "Y", Mark: "0", Name: "Player2"}
-var players = []*User{&player1, &player2}
-
 var currentPlayerIndex int = 0
-
-
-type Move int32
-
-const (
-	//Move_Noop      Move = 0
-	Move_Left      Move = 1
-	Move_Right     Move = 2
-	Move_Up        Move = 3
-	Move_Down      Move = 4
-	Move_PlaceMark Move = 5
-	Move_Quit      Move = 6
-)
-
 
 type Game struct {
 	Terminal *term.Term
 	Running  bool
+	// Users
+	player1 User
+	player2 User
+	players []*User
+	// Display Other Users
+	displayOtherUsers bool
 }
 
 func (game *Game) InitGame() {
@@ -45,27 +34,52 @@ func (game *Game) InitGame() {
 	// Configure Terminal
 	term.RawMode(game.Terminal)
 
+	// Configure Defaults
+	game.displayOtherUsers = true
 
+	// Configure Player Inputs
+	playerOneInput := make(chan Move)
+	playerTwoInput := make(chan Move)
+
+	// Init Players
+	game.player1 = User{Position: 0, Character: "1", Mark: "X", Name: "Player1", InputChannel: &playerOneInput}
+	game.player2 = User{Position: 8, Character: "2", Mark: "0", Name: "Player2", InputChannel: &playerTwoInput}
+	game.players = []*User{&game.player1, &game.player2}
 }
 func (game *Game) CloseGame() {
 	defer game.Terminal.Close() // Defer is LIFO ordering, Close is last.
 	defer game.Terminal.Restore()
 }
 // Core Game Loop
-var OutstandingMoves = make(chan Move)
-
 func (game *Game) GameLoop() {
+
 	game.Running = true
 	game.draw()
+	var currentMove Move
 
-	//// Setup Game input
+	// Check for input from either player
 	for game.Running {
-		currentMove := <- OutstandingMoves
+		select{
+		case currentMove = <- *game.player1.InputChannel:
+			log.Println("Received input from Player 1")
+		case currentMove = <- *game.player2.InputChannel:
+			log.Println("Received input from Player 2")
+		}
+
 		// Iterate Game States
 		game.update(currentMove)
 		game.draw()
 	}
 }
+
+func (game *Game) GetPlayerOneInputChannel() *chan Move {
+	return game.player1.InputChannel
+}
+
+func (game *Game) GetPlayerTwoInputChannel() *chan Move {
+	return game.player2.InputChannel
+}
+
 
 func performMove(lg LogicGrid, currentPlayer *User, currentMove Move){
 	tmpPosition := currentPlayer.Position
@@ -104,7 +118,7 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove Move){
 
 func (game *Game) update(currentMove Move) {
 
-	currentPlayer := players[currentPlayerIndex]
+	currentPlayer := game.players[currentPlayerIndex]
 	if currentMove == Move_Quit{
 		game.Running = false
 	}else if currentMove == Move_PlaceMark{
@@ -114,7 +128,7 @@ func (game *Game) update(currentMove Move) {
 
 		}
 		// Change Player
-		currentPlayerIndex = (currentPlayerIndex + 1) % len(players)
+		currentPlayerIndex = (currentPlayerIndex + 1) % len(game.players)
 	}else{
 		performMove(lg, currentPlayer, currentMove)
 	}
@@ -122,10 +136,15 @@ func (game *Game) update(currentMove Move) {
 }
 
 func (game *Game) draw() {
-	lg.draw([]*User{players[currentPlayerIndex]})
+	if game.displayOtherUsers {
+		lg.draw([]*User{game.players[currentPlayerIndex]})
+	} else {
+		lg.draw(game.players)
+	}
+
 	//-- Draw Statistics
 	statsTemplate := "Player Name: %s\r\nCurrent Position: %d\r\n"
-	for _, player := range players{
+	for _, player := range game.players{
 		fmt.Printf(statsTemplate, player.Name, player.Position)
 	}
 }
@@ -154,8 +173,8 @@ func columnsComplete(lg LogicGrid) bool{
 	for currentColumn := 0; currentColumn < RowCount; currentColumn++ {
 		column, _ := lg.getColumn(currentColumn)
 		log.Printf("Checking Columns")
-		for _, v := range column{
-			log.Print("%d,",v)
+		for i, v := range column{
+			log.Printf("%d,%s", i, v)
 		}
 		if checkAllSame(column){
 			return true

@@ -17,6 +17,9 @@ package cmd
 
 import (
 	"fmt"
+	gameproject "github.com/MichaelWasher/GoXO/game"
+	"github.com/MichaelWasher/GoXO/grpc"
+	"github.com/MichaelWasher/GoXO/input"
 	"github.com/spf13/cobra"
 )
 
@@ -26,6 +29,18 @@ var clientCmd = &cobra.Command{
 	Short: "Connect to a game of GoXO",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("client called")
+		game := gameproject.Game{}
+
+
+		game.InitGame()
+		defer game.CloseGame()
+
+		go input.HandleKeyEvents(game.Terminal, game.GetPlayerTwoInputChannel())
+
+		// TODO Set Args
+		grpc.SetupClient(7777, game.GetPlayerTwoInputChannel())
+		
+		//game.GameLoop()
 	},
 }
 
