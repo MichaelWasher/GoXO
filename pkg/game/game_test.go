@@ -79,52 +79,64 @@ func TestLocalGame(t *testing.T) {
 			break
 		}
 	}
-	drawEvent, err := p2Mio.Read()
+	drawEvent, err := p1Mio.Read()
 	if err != nil {
 		t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
 	}
-	// Compare against the template
+
+	// Read and compare against the template
+	drawEvent, err = p1Mio.Read()
+	if err != nil {
+		t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
+	}
 	templateMatch := GridTemplate.MatchString(drawEvent.DrawString)
 	if !templateMatch {
 		t.Fatalf("The draw event did not match the expected grid layout")
 	}
 
-	// Test Basic Move Right
-	expectedOutput := `-------------
-| . | 1 | . |
--------------
-| . | . | . |
--------------
-| . | . | . |
--------------`
-	p1Mio.Write(io.InputEvent{Move: io.Move_Right})
+	// Test Wrapping Move Left
+	expectedOutput := "-------------\r\n" +
+		"| . | . | . |\r\n" +
+		"-------------\r\n" +
+		"| . | . | . |\r\n" +
+		"-------------\r\n" +
+		"| . | . | 1 |\r\n" +
+		"-------------\r\n"
 
-	time.Sleep(10 * time.Millisecond)
-	drawEvent, err = p2Mio.Read()
+	<-p1Mio.InputChannel
+	p1Mio.Write(io.InputEvent{Move: io.Move_Left, Terminate: false})
+
+	time.Sleep(100 * time.Millisecond)
+	// TODO FIX: Need to read twice to get the updates
+	drawEvent, err = p1Mio.Read()
+	drawEvent, err = p1Mio.Read()
 	if err != nil {
 		t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
 	}
+
 	// Compare against the template
-	if strings.HasPrefix(drawEvent.DrawString, expectedOutput) {
+	if !strings.HasPrefix(drawEvent.DrawString, expectedOutput) {
 		t.Fatal("Moving Player 1 failed.")
 	}
-	// Test Basic Move Left
-	expectedOutput = `-------------
-| 1 | . | . |
--------------
-| . | . | . |
--------------
-| . | . | . |
--------------`
-	p1Mio.Write(io.InputEvent{Move: io.Move_Right})
+	// Test Move Wrapping Around
+	expectedOutput = "-------------\r\n" +
+		"| . | . | 1 |\r\n" +
+		"-------------\r\n" +
+		"| . | . | . |\r\n" +
+		"-------------\r\n" +
+		"| . | . | . |\r\n" +
+		"-------------\r\n"
+	<-p1Mio.InputChannel
+	p1Mio.Write(io.InputEvent{Move: io.Move_Down})
 
 	time.Sleep(10 * time.Millisecond)
 	drawEvent, err = p2Mio.Read()
+
 	if err != nil {
 		t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
 	}
 	// Compare against the template
-	if strings.HasPrefix(drawEvent.DrawString, expectedOutput) {
+	if !strings.HasPrefix(drawEvent.DrawString, expectedOutput) {
 		t.Fatal("Moving Player 1 failed.")
 	}
 }
