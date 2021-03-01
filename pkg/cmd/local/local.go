@@ -35,7 +35,7 @@ func runLocalGame() error {
 	log.Println("Starting the GoXO Local Game")
 
 	// Configure Inputs
-	terminal := io.NewTerminal()
+	terminal, _ := io.NewTerminal()
 	defer terminal.Close() // Defer is LIFO ordering, Close is last.
 	defer terminal.Restore()
 

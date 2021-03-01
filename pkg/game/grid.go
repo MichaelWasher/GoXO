@@ -122,4 +122,5 @@ func (lg LogicGrid) draw(players []*User) string {
 
 	// Print all Elements
 	return fmt.Sprintf(GRID_TEMPLATE, displayGrid...)
+
 }
