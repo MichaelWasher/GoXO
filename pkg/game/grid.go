@@ -100,12 +100,11 @@ func (lg LogicGrid) getAntiDiagonal() []string {
 func (lg *LogicGrid) PlaceMark(player *User) error {
 	// Ensure that the space is not used
 	if lg.isUsed(Position(player.Position)) {
-		return errors.New("Invalid Position. Unable to place mark.")
+		return errors.New("invalid position; unable to place mark")
 	}
 	log.Print("Placing Mark")
 	log.Printf("Mark is %s", lg.GridArray[player.Position])
 	lg.GridArray[player.Position] = player.Mark
-	log.Printf("Mark is %s", lg.GridArray[player.Position])
 	return nil
 }
 
@@ -122,4 +121,5 @@ func (lg LogicGrid) draw(players []*User) string {
 
 	// Print all Elements
 	return fmt.Sprintf(GRID_TEMPLATE, displayGrid...)
+
 }
