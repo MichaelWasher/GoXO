@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"strings"
 	"testing"
@@ -16,10 +15,12 @@ import (
 
 type MockGameIO struct {
 	InputChannel chan io.InputEvent
-	DrawChannel  <-chan io.DrawEvent
+}
+type MockDrawIO struct {
+	DrawChannel <-chan io.DrawEvent
 }
 
-func (mio *MockGameIO) RegisterDrawEvents(ctx context.Context, drawChannel <-chan io.DrawEvent) {
+func (mio *MockDrawIO) RegisterDrawEvents(ctx context.Context, drawChannel <-chan io.DrawEvent) {
 	fmt.Print("Draw Event Called")
 	mio.DrawChannel = drawChannel
 	select {
@@ -35,7 +36,7 @@ func (mio *MockGameIO) RegisterInputEvents(ctx context.Context, inputChan chan i
 		return
 	}
 }
-func (mio MockGameIO) Write(ioe io.InputEvent) error {
+func (mio *MockGameIO) Write(ioe io.InputEvent) error {
 	if mio.InputChannel == nil {
 		return errors.New("Input Channel has not been configured correctly")
 	}
@@ -43,7 +44,7 @@ func (mio MockGameIO) Write(ioe io.InputEvent) error {
 	return nil
 }
 
-func (mio MockGameIO) Read() (io.DrawEvent, error) {
+func (mio MockDrawIO) Read() (io.DrawEvent, error) {
 	if mio.DrawChannel == nil {
 		return io.DrawEvent{}, errors.New("Unable to get draw event from IO tool. IO tool is nil")
 	}
@@ -58,34 +59,87 @@ func (mio MockGameIO) CloseGame() error {
 	return nil
 
 }
-func TestLocalGame(t *testing.T) {
-
+func SetupTest(t *testing.T) (*MockGameIO, *MockGameIO, *MockDrawIO, *game.Game) {
 	// Configure the IO
 	p1Mio := &MockGameIO{}
 	p2Mio := &MockGameIO{}
+	drawMio := &MockDrawIO{}
 
 	// Create the Game
-	log.Println("Game Created")
-	gameObject := game.NewGame(p1Mio, p2Mio)
+	gameObject := game.NewGame(p1Mio, p2Mio, drawMio)
 	t.Log("Game Created")
-	defer gameObject.CloseGame()
 
 	// Setup Game Loop
 	go gameObject.GameLoop()
 	for {
 		// TODO Implement exponential Standoff
 		time.Sleep(10 * time.Millisecond)
-		if p1Mio.DrawChannel != nil {
+		if drawMio.DrawChannel != nil {
 			break
 		}
 	}
-	drawEvent, err := p1Mio.Read()
-	if err != nil {
-		t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
+
+	return p1Mio, p2Mio, drawMio, gameObject
+}
+func TeardownTest(t *testing.T) {
+
+}
+
+func TestUserMovement(t *testing.T) {
+
+	// Test Wrapping Move Left
+	testCases := []struct {
+		name           string
+		movements      []io.Move
+		expectedOutput string
+	}{
+		{"Move User Left - Wrapping", []io.Move{io.Move_Left}, "-------------\r\n| . | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n| . | . | 1 |\r\n-------------\r\n"},
+		{"Move User Down - Wrapping", []io.Move{io.Move_Left, io.Move_Down}, "-------------\r\n| . | . | 1 |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
+		{"Move User Right - Wrapping", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right}, "-------------\r\n| . | . | . |\r\n-------------\r\n| 1 | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
+		{"Move User Up - Nonwrapping", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_Up}, "-------------\r\n| 1 | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
+		{"Place Piece Move", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_Up, io.Move_PlaceMark}, "-------------\r\n| X | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n| . | . | 2 |\r\n-------------\r\n"},
+		// {"Player 2 Move Up", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_Up, io.Move_PlaceMark, io.Move_Up}, "-------------\r\n| X | . | . |\r\n-------------\r\n| . | . | 2 |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
 	}
 
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Setup Test
+			p1Mio, _, drawMio, gameObject := SetupTest(t)
+			defer gameObject.CloseGame()
+			defer TeardownTest(t)
+			// Discard the first read
+			drawMio.Read()
+			// Wait for users turn and perform movement
+			var drawEvent io.DrawEvent
+			var err error
+
+			for _, move := range tc.movements {
+				t.Log("Input from P1 Mio")
+				p1Mio.Write(io.InputEvent{Move: move, Terminate: false})
+
+				// Read the Draw Output
+				time.Sleep(5 * time.Millisecond)
+				drawEvent, err = drawMio.Read()
+				if err != nil {
+					t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
+				}
+			}
+			// Compare against the template
+			if !strings.HasPrefix(drawEvent.DrawString, tc.expectedOutput) {
+				t.Fatal("Moving Player 1 failed.")
+			}
+		})
+	}
+
+}
+func TestLocalGame(t *testing.T) {
+	var GridTemplate = regexp.MustCompile(`-{13}(\r\n\|( [\d\.] \|){3}\r\n-{13}){3}`)
+	_, _, drawMio, gameObject := SetupTest(t)
+	defer gameObject.CloseGame()
+	defer TeardownTest(t)
+
 	// Read and compare against the template
-	drawEvent, err = p1Mio.Read()
+	drawEvent, err := drawMio.Read()
 	if err != nil {
 		t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
 	}
@@ -93,53 +147,4 @@ func TestLocalGame(t *testing.T) {
 	if !templateMatch {
 		t.Fatalf("The draw event did not match the expected grid layout")
 	}
-
-	// Test Wrapping Move Left
-	expectedOutput := "-------------\r\n" +
-		"| . | . | . |\r\n" +
-		"-------------\r\n" +
-		"| . | . | . |\r\n" +
-		"-------------\r\n" +
-		"| . | . | 1 |\r\n" +
-		"-------------\r\n"
-
-	<-p1Mio.InputChannel
-	p1Mio.Write(io.InputEvent{Move: io.Move_Left, Terminate: false})
-
-	time.Sleep(100 * time.Millisecond)
-	// TODO FIX: Need to read twice to get the updates
-	drawEvent, err = p1Mio.Read()
-	drawEvent, err = p1Mio.Read()
-	if err != nil {
-		t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
-	}
-
-	// Compare against the template
-	if !strings.HasPrefix(drawEvent.DrawString, expectedOutput) {
-		t.Fatal("Moving Player 1 failed.")
-	}
-	// Test Move Wrapping Around
-	expectedOutput = "-------------\r\n" +
-		"| . | . | 1 |\r\n" +
-		"-------------\r\n" +
-		"| . | . | . |\r\n" +
-		"-------------\r\n" +
-		"| . | . | . |\r\n" +
-		"-------------\r\n"
-	<-p1Mio.InputChannel
-	p1Mio.Write(io.InputEvent{Move: io.Move_Down})
-
-	time.Sleep(10 * time.Millisecond)
-	drawEvent, err = p2Mio.Read()
-
-	if err != nil {
-		t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
-	}
-	// Compare against the template
-	if !strings.HasPrefix(drawEvent.DrawString, expectedOutput) {
-		t.Fatal("Moving Player 1 failed.")
-	}
 }
-
-//
-var GridTemplate = regexp.MustCompile(`-{13}(\r\n\|( [\d\.] \|){3}\r\n-{13}){3}`)

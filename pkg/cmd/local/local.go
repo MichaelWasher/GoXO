@@ -43,7 +43,7 @@ func runLocalGame() error {
 
 	// Create the Game
 	log.Println("Game Created")
-	gameObj := game.NewGame(terminal, terminal)
+	gameObj := game.NewGame(terminal, terminal, terminal)
 	defer gameObj.CloseGame()
 
 	// Configure Event Listeners

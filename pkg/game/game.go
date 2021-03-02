@@ -27,8 +27,6 @@ import (
 // ---- Game Variables
 var lg LogicGrid = NewLogicGrid()
 
-var currentPlayerIndex int = 0
-
 type State int
 
 const (
@@ -41,10 +39,12 @@ type Game struct {
 	Running bool
 	State   State
 	// Users
-	player1       User
-	player2       User
-	players       []*User
-	currentPlayer *User
+	player1 User
+	player2 User
+	players []*User
+	// Player iterating
+	currentPlayerIndex int
+	currentPlayer      *User
 	// Display Other Users
 	drawChannel       chan io.DrawEvent
 	displayOtherUsers bool
@@ -54,16 +54,15 @@ type Game struct {
 	cancel  context.CancelFunc
 }
 
-func NewGame(player1 io.PlayerEventHandler, player2 io.PlayerEventHandler) *Game {
+func NewGame(player1 io.PlayerInputHandler, player2 io.PlayerInputHandler, mainOuput io.OutputHandler) *Game {
 	game := Game{}
 	// Configure Defaults
 	game.displayOtherUsers = true
 	game.context, game.cancel = context.WithCancel(context.Background())
 
 	// Configure Player Outputs
-	game.drawChannel = make(chan io.DrawEvent, 1)
-	go player1.RegisterDrawEvents(game.context, game.drawChannel)
-	go player2.RegisterDrawEvents(game.context, game.drawChannel)
+	game.drawChannel = make(chan io.DrawEvent)
+	go mainOuput.RegisterDrawEvents(game.context, game.drawChannel)
 
 	// Configure Player Inputs
 	player1Input := make(chan io.InputEvent, 1)
@@ -75,8 +74,8 @@ func NewGame(player1 io.PlayerEventHandler, player2 io.PlayerEventHandler) *Game
 	// TODO Allow for Multiple Event Subscribers
 
 	// Init Players
-	game.player1 = User{Position: 0, Character: "1", Mark: "X", Name: "Player1", PlayerEventHandler: player1, DrawChannel: game.drawChannel, InputChannel: player1Input}
-	game.player2 = User{Position: 8, Character: "2", Mark: "0", Name: "Player2", PlayerEventHandler: player2, DrawChannel: game.drawChannel, InputChannel: player2Input}
+	game.player1 = User{Position: 0, Character: "1", Mark: "X", Name: "Player1", PlayerEventHandler: player1, InputChannel: player1Input}
+	game.player2 = User{Position: 8, Character: "2", Mark: "0", Name: "Player2", PlayerEventHandler: player2, InputChannel: player2Input}
 
 	game.players = []*User{&game.player1, &game.player2}
 
@@ -141,12 +140,28 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove io.Move) {
 
 func (game *Game) update() {
 	// Player Turn
+<<<<<<< HEAD
 	currentPlayer := game.players[currentPlayerIndex]
+=======
+	currentPlayer := game.players[game.currentPlayerIndex]
+	// currentPlayer.InputChannel <- io.NewInputEvent(io.Request_Move)
+	// TODO Resolve the race condition here for bi-directional communication between the GoRoutines
+	// i.e the resulting instructions could be
+	// t1 -> chan
+	// t1 <-chan
+	// But should always be
+	// t1 -> chan
+	// t2 <-chan
+	//
+>>>>>>> fa48cd9... Add Basic Subtests for Movement and formatting
 	// Perform Turn
 	event := <-currentPlayer.InputChannel
 	log.Printf("Received input from %s", currentPlayer.Name)
 
 	switch event.Move {
+	case io.Move_Noop:
+		return
+
 	case io.Move_Quit:
 		log.Print("Command Received to End Game.")
 		game.Running = false
@@ -157,7 +172,7 @@ func (game *Game) update() {
 
 		}
 		// Change Player
-		currentPlayerIndex = (currentPlayerIndex + 1) % len(game.players)
+		game.currentPlayerIndex = (game.currentPlayerIndex + 1) % len(game.players)
 	default:
 		performMove(lg, currentPlayer, event.Move)
 	}
@@ -167,7 +182,7 @@ func (game *Game) update() {
 func (game *Game) draw() {
 	var outputString string
 	if game.displayOtherUsers {
-		outputString = lg.draw([]*User{game.players[currentPlayerIndex]})
+		outputString = lg.draw([]*User{game.players[game.currentPlayerIndex]})
 	} else {
 		outputString = lg.draw(game.players)
 	}

@@ -87,39 +87,57 @@ func (t *Terminal) RegisterInputEvents(ctx context.Context, playerInput chan Inp
 	charInputChannel := t.getCharacterInputChannel(ctx)
 	for {
 		select {
+<<<<<<< HEAD
 		case char := <-charInputChannel:
 			playerInput <- inputEventFromBytes(char)
+=======
+		case move := <-*t.getInputEvent(ctx):
+			log.Print(move)
+			playerInput <- move
+>>>>>>> fa48cd9... Add Basic Subtests for Movement and formatting
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
+<<<<<<< HEAD
 func inputEventFromBytes(c []byte) InputEvent {
+=======
+func (t *Terminal) getInputEvent(ctx context.Context) *chan InputEvent {
+	terminalEvent := make(chan InputEvent)
+	go func() {
+		select {
+		// TODO Resolve issue with 2 timing the closing input
+		case <-ctx.Done():
+			return
+		case terminalEvent <- getInput(getch(&t.Term)):
+			return
+		}
+	}()
+	return &terminalEvent
+}
+
+func getInput(c []byte) InputEvent {
+>>>>>>> fa48cd9... Add Basic Subtests for Movement and formatting
 
 	switch {
 	case bytes.Equal(c, LEFT_KEY) || bytes.Equal(c, A_KEY): // left
-		log.Print("LEFT pressed")
 		return NewInputEvent(Move_Left)
 
 	case bytes.Equal(c, RIGHT_KEY) || bytes.Equal(c, D_KEY): // right
-		log.Print("RIGHT pressed")
 		return NewInputEvent(Move_Right)
 
 	case bytes.Equal(c, UP_KEY) || bytes.Equal(c, W_KEY): // up
-		log.Print("UP pressed")
 		return NewInputEvent(Move_Up)
 
 	case bytes.Equal(c, DOWN_KEY) || bytes.Equal(c, S_KEY): // down
-		log.Print("DOWN pressed")
 		return NewInputEvent(Move_Down)
 
 	case bytes.Equal(c, SPACE_KEY): // Place key
-		log.Print("SPACE pressed")
 		return NewInputEvent(Move_PlaceMark)
 
 	case bytes.Equal(c, Q_KEY) || bytes.Equal(c, CTRL_C_KEYS):
-		log.Print("Q pressed")
 		tmpEvent := NewInputEvent(Move_Quit)
 		tmpEvent.Terminate = true
 		return tmpEvent

@@ -32,7 +32,10 @@ func NewDrawEvent(outputString string, terminate bool) DrawEvent {
 	return DrawEvent{DrawString: outputString, Terminate: terminate}
 }
 
-type PlayerEventHandler interface {
+type OutputHandler interface {
 	RegisterDrawEvents(context.Context, <-chan DrawEvent)
+}
+
+type PlayerInputHandler interface {
 	RegisterInputEvents(context.Context, chan InputEvent)
 }
