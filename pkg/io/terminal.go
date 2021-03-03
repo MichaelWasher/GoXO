@@ -87,39 +87,15 @@ func (t *Terminal) RegisterInputEvents(ctx context.Context, playerInput chan Inp
 	charInputChannel := t.getCharacterInputChannel(ctx)
 	for {
 		select {
-<<<<<<< HEAD
 		case char := <-charInputChannel:
 			playerInput <- inputEventFromBytes(char)
-=======
-		case move := <-*t.getInputEvent(ctx):
-			log.Print(move)
-			playerInput <- move
->>>>>>> fa48cd9... Add Basic Subtests for Movement and formatting
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-<<<<<<< HEAD
 func inputEventFromBytes(c []byte) InputEvent {
-=======
-func (t *Terminal) getInputEvent(ctx context.Context) *chan InputEvent {
-	terminalEvent := make(chan InputEvent)
-	go func() {
-		select {
-		// TODO Resolve issue with 2 timing the closing input
-		case <-ctx.Done():
-			return
-		case terminalEvent <- getInput(getch(&t.Term)):
-			return
-		}
-	}()
-	return &terminalEvent
-}
-
-func getInput(c []byte) InputEvent {
->>>>>>> fa48cd9... Add Basic Subtests for Movement and formatting
 
 	switch {
 	case bytes.Equal(c, LEFT_KEY) || bytes.Equal(c, A_KEY): // left

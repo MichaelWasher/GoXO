@@ -25,7 +25,6 @@ import (
 )
 
 // ---- Game Variables
-var lg LogicGrid = NewLogicGrid()
 
 type State int
 
@@ -48,6 +47,8 @@ type Game struct {
 	// Display Other Users
 	drawChannel       chan io.DrawEvent
 	displayOtherUsers bool
+	// Grid and Piece Placement
+	logicGrid LogicGrid
 	// IO Channels
 	// Context Management
 	context context.Context
@@ -69,9 +70,10 @@ func NewGame(player1 io.PlayerInputHandler, player2 io.PlayerInputHandler, mainO
 	go player1.RegisterInputEvents(game.context, player1Input)
 
 	player2Input := make(chan io.InputEvent, 1)
-	go player2.RegisterInputEvents(game.context, player2Input)
+	// go player2.RegisterInputEvents(game.context, player2Input)
 
 	// TODO Allow for Multiple Event Subscribers
+	game.logicGrid = NewLogicGrid()
 
 	// Init Players
 	game.player1 = User{Position: 0, Character: "1", Mark: "X", Name: "Player1", PlayerEventHandler: player1, InputChannel: player1Input}
@@ -140,21 +142,7 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove io.Move) {
 
 func (game *Game) update() {
 	// Player Turn
-<<<<<<< HEAD
-	currentPlayer := game.players[currentPlayerIndex]
-=======
 	currentPlayer := game.players[game.currentPlayerIndex]
-	// currentPlayer.InputChannel <- io.NewInputEvent(io.Request_Move)
-	// TODO Resolve the race condition here for bi-directional communication between the GoRoutines
-	// i.e the resulting instructions could be
-	// t1 -> chan
-	// t1 <-chan
-	// But should always be
-	// t1 -> chan
-	// t2 <-chan
-	//
->>>>>>> fa48cd9... Add Basic Subtests for Movement and formatting
-	// Perform Turn
 	event := <-currentPlayer.InputChannel
 	log.Printf("Received input from %s", currentPlayer.Name)
 
@@ -166,7 +154,7 @@ func (game *Game) update() {
 		log.Print("Command Received to End Game.")
 		game.Running = false
 	case io.Move_PlaceMark:
-		lg.PlaceMark(currentPlayer)
+		game.logicGrid.PlaceMark(currentPlayer)
 		if game.checkWinner(currentPlayer) {
 			//TODO Break and start closing sequence
 
@@ -174,7 +162,7 @@ func (game *Game) update() {
 		// Change Player
 		game.currentPlayerIndex = (game.currentPlayerIndex + 1) % len(game.players)
 	default:
-		performMove(lg, currentPlayer, event.Move)
+		performMove(game.logicGrid, currentPlayer, event.Move)
 	}
 
 }
@@ -182,9 +170,9 @@ func (game *Game) update() {
 func (game *Game) draw() {
 	var outputString string
 	if game.displayOtherUsers {
-		outputString = lg.draw([]*User{game.players[game.currentPlayerIndex]})
+		outputString = game.logicGrid.draw([]*User{game.players[game.currentPlayerIndex]})
 	} else {
-		outputString = lg.draw(game.players)
+		outputString = game.logicGrid.draw(game.players)
 	}
 
 	//-- Draw Statistics
@@ -198,7 +186,7 @@ func (game *Game) draw() {
 
 // ---- Check Winner Functionality
 func (game *Game) checkWinner(user *User) bool {
-	if columnsComplete(lg) || rowsComplete(lg) || diagComplete(lg) || antiDiagComplete(lg) {
+	if columnsComplete(game.logicGrid) || rowsComplete(game.logicGrid) || diagComplete(game.logicGrid) || antiDiagComplete(game.logicGrid) {
 		// Winner is found
 		log.Print("WINNER WAS FOUND")
 		return true

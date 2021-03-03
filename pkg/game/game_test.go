@@ -71,8 +71,8 @@ func SetupTest(t *testing.T) (*MockGameIO, *MockGameIO, *MockDrawIO, *game.Game)
 
 	// Setup Game Loop
 	go gameObject.GameLoop()
+	// Wait for the Game to hook into the p1/p2/draw channels
 	for {
-		// TODO Implement exponential Standoff
 		time.Sleep(10 * time.Millisecond)
 		if drawMio.DrawChannel != nil {
 			break
@@ -83,6 +83,119 @@ func SetupTest(t *testing.T) (*MockGameIO, *MockGameIO, *MockDrawIO, *game.Game)
 }
 func TeardownTest(t *testing.T) {
 
+}
+
+// TODO Test Perform Win
+// TODO Create Generic Test that can be used for iterative moves
+
+func TestIO(t *testing.T) {
+	// Test Wrapping Move Left
+	testCases := []struct {
+		name           string
+		p1Moves        []io.Move
+		p2Moves        []io.Move
+		expectedOutput string
+	}{
+		{"Player 2 Move Up", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_Up, io.Move_PlaceMark}, []io.Move{io.Move_Up}, "-------------\r\n| X | . | . |\r\n-------------\r\n| . | . | 2 |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Setup Test
+			p1Mio, p2Mio, drawMio, gameObject := SetupTest(t)
+			defer gameObject.CloseGame()
+			defer TeardownTest(t)
+
+			// Discard the first read
+			drawMio.Read()
+
+			// Wait for users turn and perform movement
+			var drawEvent io.DrawEvent
+			var err error
+			for _, move := range tc.p1Moves {
+				t.Log("Input from P1 Mio")
+				p1Mio.Write(io.InputEvent{Move: move, Terminate: false})
+
+				// Read the Draw Output
+				time.Sleep(5 * time.Millisecond)
+				drawEvent, err = drawMio.Read()
+				if err != nil {
+					t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
+				}
+			}
+			for _, move := range tc.p2Moves {
+				t.Log("Input from P2 Mio")
+
+				p2Mio.Write(io.InputEvent{Move: move, Terminate: false})
+				// Read the Draw Output
+				time.Sleep(5 * time.Millisecond)
+				drawEvent, err = drawMio.Read()
+				if err != nil {
+					t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
+				}
+			}
+
+			// Compare against the template
+			if !strings.HasPrefix(drawEvent.DrawString, tc.expectedOutput) {
+				t.Fatal("Moving Player 1 failed.")
+			}
+		})
+	}
+}
+
+func TestMutiplayerTurns(t *testing.T) {
+	// Test Wrapping Move Left
+	testCases := []struct {
+		name           string
+		p1Moves        []io.Move
+		p2Moves        []io.Move
+		expectedOutput string
+	}{
+		{"Player 2 Move Up", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_Up, io.Move_PlaceMark}, []io.Move{io.Move_Up}, "-------------\r\n| X | . | . |\r\n-------------\r\n| . | . | 2 |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Setup Test
+			p1Mio, p2Mio, drawMio, gameObject := SetupTest(t)
+			defer gameObject.CloseGame()
+			defer TeardownTest(t)
+
+			// Discard the first read
+			drawMio.Read()
+
+			// Wait for users turn and perform movement
+			var drawEvent io.DrawEvent
+			var err error
+			for _, move := range tc.p1Moves {
+				t.Log("Input from P1 Mio")
+				p1Mio.Write(io.InputEvent{Move: move, Terminate: false})
+
+				// Read the Draw Output
+				time.Sleep(5 * time.Millisecond)
+				drawEvent, err = drawMio.Read()
+				if err != nil {
+					t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
+				}
+			}
+			for _, move := range tc.p2Moves {
+				t.Log("Input from P2 Mio")
+
+				p2Mio.Write(io.InputEvent{Move: move, Terminate: false})
+				// Read the Draw Output
+				time.Sleep(5 * time.Millisecond)
+				drawEvent, err = drawMio.Read()
+				if err != nil {
+					t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
+				}
+			}
+
+			// Compare against the template
+			if !strings.HasPrefix(drawEvent.DrawString, tc.expectedOutput) {
+				t.Fatal("Moving Player 1 failed.")
+			}
+		})
+	}
 }
 
 func TestUserMovement(t *testing.T) {
@@ -107,12 +220,13 @@ func TestUserMovement(t *testing.T) {
 			p1Mio, _, drawMio, gameObject := SetupTest(t)
 			defer gameObject.CloseGame()
 			defer TeardownTest(t)
+
 			// Discard the first read
 			drawMio.Read()
+
 			// Wait for users turn and perform movement
 			var drawEvent io.DrawEvent
 			var err error
-
 			for _, move := range tc.movements {
 				t.Log("Input from P1 Mio")
 				p1Mio.Write(io.InputEvent{Move: move, Terminate: false})
@@ -124,6 +238,7 @@ func TestUserMovement(t *testing.T) {
 					t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
 				}
 			}
+
 			// Compare against the template
 			if !strings.HasPrefix(drawEvent.DrawString, tc.expectedOutput) {
 				t.Fatal("Moving Player 1 failed.")
@@ -133,6 +248,7 @@ func TestUserMovement(t *testing.T) {
 
 }
 func TestLocalGame(t *testing.T) {
+
 	var GridTemplate = regexp.MustCompile(`-{13}(\r\n\|( [\d\.] \|){3}\r\n-{13}){3}`)
 	_, _, drawMio, gameObject := SetupTest(t)
 	defer gameObject.CloseGame()
