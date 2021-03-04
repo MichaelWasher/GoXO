@@ -100,6 +100,7 @@ func (game *Game) CloseGame() {
 	// Inform all running Go Routines to finish
 	for _, player := range game.players {
 		player.InputContextCancel()
+		close(player.InputChannel)
 	}
 	// TODO close the Draw Channelsgame.drawChannel
 
