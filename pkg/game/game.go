@@ -55,37 +55,54 @@ type Game struct {
 	cancel  context.CancelFunc
 }
 
-func NewGame(player1 io.PlayerInputHandler, player2 io.PlayerInputHandler, mainOuput io.OutputHandler) *Game {
+func createPlayers(inputHandlers []io.PlayerInputHandler) []*User {
+	players := []*User{}
+
+	// Configure Player Inputs
+	for i, playerInputHandler := range inputHandlers {
+
+		input := make(chan io.InputEvent)
+		inputContext, inputContextCancel := context.WithCancel(context.Background())
+		player := &User{
+			Position:           0,
+			Character:          fmt.Sprint(i + 1),
+			Mark:               string(rune(i + int('X'))),
+			Name:               "Player" + fmt.Sprint(i+1),
+			PlayerInputHandler: playerInputHandler,
+			InputChannel:       input,
+			InputContextCancel: inputContextCancel,
+		}
+		go playerInputHandler.RegisterInputEvents(inputContext, input)
+		players = append(players, player)
+	}
+
+	return players
+}
+
+func NewGame(p1InputHandler io.PlayerInputHandler, p2InputHandler io.PlayerInputHandler, mainOuput io.OutputHandler) *Game {
 	game := Game{}
 	// Configure Defaults
 	game.displayOtherUsers = true
-	game.context, game.cancel = context.WithCancel(context.Background())
 
 	// Configure Player Outputs
+	game.context, game.cancel = context.WithCancel(context.Background())
 	game.drawChannel = make(chan io.DrawEvent)
 	go mainOuput.RegisterDrawEvents(game.context, game.drawChannel)
 
-	// Configure Player Inputs
-	player1Input := make(chan io.InputEvent, 1)
-	go player1.RegisterInputEvents(game.context, player1Input)
-
-	player2Input := make(chan io.InputEvent, 1)
-	// go player2.RegisterInputEvents(game.context, player2Input)
-
 	// TODO Allow for Multiple Event Subscribers
 	game.logicGrid = NewLogicGrid()
-
-	// Init Players
-	game.player1 = User{Position: 0, Character: "1", Mark: "X", Name: "Player1", PlayerEventHandler: player1, InputChannel: player1Input}
-	game.player2 = User{Position: 8, Character: "2", Mark: "0", Name: "Player2", PlayerEventHandler: player2, InputChannel: player2Input}
-
-	game.players = []*User{&game.player1, &game.player2}
+	game.players = createPlayers([]io.PlayerInputHandler{p1InputHandler, p2InputHandler})
 
 	return &game
 }
 
 func (game *Game) CloseGame() {
-	game.cancel()
+	// Inform all running Go Routines to finish
+	for _, player := range game.players {
+		player.InputContextCancel()
+	}
+	// TODO close the Draw Channelsgame.drawChannel
+
 }
 
 // Core Game Loop

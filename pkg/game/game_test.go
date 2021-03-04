@@ -151,7 +151,7 @@ func TestMutiplayerTurns(t *testing.T) {
 		p2Moves        []io.Move
 		expectedOutput string
 	}{
-		{"Player 2 Move Up", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_Up, io.Move_PlaceMark}, []io.Move{io.Move_Up}, "-------------\r\n| X | . | . |\r\n-------------\r\n| . | . | 2 |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
+		{"Player 2 Move Up", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_Up, io.Move_PlaceMark}, []io.Move{io.Move_Up}, "-------------\r\n| X | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n| 2 | . | . |\r\n-------------\r\n"},
 	}
 
 	for _, tc := range testCases {
@@ -192,7 +192,7 @@ func TestMutiplayerTurns(t *testing.T) {
 
 			// Compare against the template
 			if !strings.HasPrefix(drawEvent.DrawString, tc.expectedOutput) {
-				t.Fatal("Moving Player 1 failed.")
+				t.Fatalf("%v has failed. Expected board:\n%v\nGot:\n%v\n", tc.name, tc.expectedOutput, drawEvent.DrawString)
 			}
 		})
 	}
@@ -210,7 +210,7 @@ func TestUserMovement(t *testing.T) {
 		{"Move User Down - Wrapping", []io.Move{io.Move_Left, io.Move_Down}, "-------------\r\n| . | . | 1 |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
 		{"Move User Right - Wrapping", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right}, "-------------\r\n| . | . | . |\r\n-------------\r\n| 1 | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
 		{"Move User Up - Nonwrapping", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_Up}, "-------------\r\n| 1 | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
-		{"Place Piece Move", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_Up, io.Move_PlaceMark}, "-------------\r\n| X | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n| . | . | 2 |\r\n-------------\r\n"},
+		{"Place Piece Move", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_PlaceMark}, "-------------\r\n| 2 | . | . |\r\n-------------\r\n| X | . | . |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
 		// {"Player 2 Move Up", []io.Move{io.Move_Left, io.Move_Down, io.Move_Right, io.Move_Up, io.Move_PlaceMark, io.Move_Up}, "-------------\r\n| X | . | . |\r\n-------------\r\n| . | . | 2 |\r\n-------------\r\n| . | . | . |\r\n-------------\r\n"},
 	}
 
@@ -238,10 +238,9 @@ func TestUserMovement(t *testing.T) {
 					t.Fatalf("Unable to read draw event. Received Error: %v. Exected event; Got %v", err, drawEvent)
 				}
 			}
-
 			// Compare against the template
 			if !strings.HasPrefix(drawEvent.DrawString, tc.expectedOutput) {
-				t.Fatal("Moving Player 1 failed.")
+				t.Fatalf("%v has failed. Expected board:\n%v\nGot:\n%v\n", tc.name, tc.expectedOutput, drawEvent.DrawString)
 			}
 		})
 	}
