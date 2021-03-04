@@ -9,5 +9,6 @@ type User struct {
 	Mark               string
 	Name               string
 	InputChannel       chan io.InputEvent
-	PlayerEventHandler io.PlayerInputHandler
+	InputContextCancel func()
+	PlayerInputHandler io.PlayerInputHandler
 }
