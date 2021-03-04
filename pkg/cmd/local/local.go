@@ -13,43 +13,42 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+package local
 
 import (
 	"log"
 
-	. "github.com/MichaelWasher/GoXO/pkg/game"
+	"github.com/MichaelWasher/GoXO/pkg/game"
 	"github.com/MichaelWasher/GoXO/pkg/io"
 	"github.com/spf13/cobra"
 )
 
-// localCmd represents the local command
-var localCmd = &cobra.Command{
+var Command = &cobra.Command{
 	Use:   "local",
 	Short: "Start a local game of GoXO and alternate between player turns",
-	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("Starting the GoXO Local Game")
-
-		// Configure Inputs
-
-		terminal := io.NewTerminal()
-		defer terminal.Close() // Defer is LIFO ordering, Close is last.
-		// defer terminal.Restore()
-		log.Println("Using Terminal as input")
-
-		// Create the Game
-		log.Println("Game Created")
-		game := NewGame(terminal, terminal)
-		defer game.CloseGame()
-
-		// Configure Event Listeners
-		log.Println("GameLoop Started")
-		game.GameLoop()
-		log.Println("GameLoop Finished")
-
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runLocalGame()
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(localCmd)
+func runLocalGame() error {
+	log.Println("Starting the GoXO Local Game")
+
+	// Configure Inputs
+	terminal := io.NewTerminal()
+	defer terminal.Close() // Defer is LIFO ordering, Close is last.
+	defer terminal.Restore()
+
+	log.Println("Using Terminal as input")
+
+	// Create the Game
+	log.Println("Game Created")
+	gameObj := game.NewGame(terminal, terminal)
+	defer gameObj.CloseGame()
+
+	// Configure Event Listeners
+	log.Println("GameLoop Started")
+	gameObj.GameLoop()
+	log.Println("GameLoop Finished")
+	return nil
 }

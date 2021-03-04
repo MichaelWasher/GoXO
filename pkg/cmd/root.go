@@ -16,25 +16,27 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"os"
-
+	"github.com/MichaelWasher/GoXO/pkg/cmd/local"
 	"github.com/spf13/cobra"
 )
 
 var cfgFile string
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "goxo",
-	Short: "A simple noughts and crosses game written in Go",
-}
-
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+func Root() *cobra.Command {
+	// rootCmd represents the base command when called without any subcommands
+	var cmd = &cobra.Command{
+		Use:          "goxo",
+		Short:        "A simple noughts and crosses game written in Go",
+		Long:         ``,
+		SilenceUsage: true,
 	}
+	// TODO Perform Additional Template functions
+
+	// Add the Sub Commands
+	cmd.AddCommand(
+		local.Command,
+	)
+	// Execute adds all child commands to the root command and sets flags appropriately.
+
+	return cmd
 }

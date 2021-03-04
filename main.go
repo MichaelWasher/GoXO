@@ -16,10 +16,11 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
-	cmd "github.com/MichaelWasher/GoXO/pkg/cmd"
+	"github.com/MichaelWasher/GoXO/pkg/cmd"
 )
 
 // TODO Add Multiplayer Support
@@ -40,5 +41,11 @@ func initLog() *os.File {
 func main() {
 	file := initLog()
 	defer file.Close()
-	cmd.Execute()
+
+	goxo := cmd.Root()
+	if err := goxo.Execute(); err != nil {
+		log.Printf("A fatal error has occurred and GoXO must close. %v", err)
+		fmt.Printf("A fatal error has occurred and GoXO must close. %v", err)
+		os.Exit(1)
+	}
 }
