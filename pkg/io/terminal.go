@@ -68,7 +68,7 @@ func ensureTtySingleton() (*Tty, error) {
 
 	if ttyStaticInstance == nil {
 		// Create Tty
-		t, err := term.Open("/dev/ttys005")
+		t, err := term.Open("/dev/tty")
 		if err != nil {
 			log.Fatalf("Unable to open a terminal. %v", err)
 		}

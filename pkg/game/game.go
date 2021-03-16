@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/MichaelWasher/GoXO/pkg/io"
 )
@@ -158,13 +159,30 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove io.Move) {
 
 }
 
+func (game *Game) getEvent() (int, io.InputEvent) {
+
+	cases := make([]reflect.SelectCase, len(game.players))
+	for i, player := range game.players {
+		cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(player.InputChannel)}
+	}
+	chosenPlayerId, value, ok := reflect.Select(cases)
+	if !ok {
+		log.Fatal("Get event channel is closed")
+	}
+	// ok will be true if the channel has not been closed.
+
+	msg := value.Interface().(io.InputEvent)
+	return chosenPlayerId, msg
+}
 func (game *Game) update() {
 	// TODO does not allow players to move async.
 	// Player Turn
 	currentPlayer := game.players[game.currentPlayerIndex]
-	event := <-currentPlayer.InputChannel
-	log.Printf("Received input from %s", currentPlayer.Name)
-
+	// TODO Give an inputEvent a Player
+	// GetEvent()
+	currentMovePlayer, event := game.getEvent()
+	log.Printf("Received input from %s", game.players[game.currentPlayerIndex].Name)
+	log.Printf("Players Move is %s", game.players[game.currentPlayerIndex].Name)
 	switch event.Move {
 	case io.Move_Noop:
 		return
@@ -173,6 +191,9 @@ func (game *Game) update() {
 		log.Print("Command Received to End Game.")
 		game.Running = false
 	case io.Move_PlaceMark:
+		if currentMovePlayer != game.currentPlayerIndex {
+			return
+		}
 		game.logicGrid.PlaceMark(currentPlayer)
 		if game.checkWinner(currentPlayer) {
 			//TODO Break and start closing sequence
