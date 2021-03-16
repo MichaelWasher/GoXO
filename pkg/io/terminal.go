@@ -1,5 +1,6 @@
 package io
 
+// TODO Add Thread Safety
 import (
 	"bytes"
 	"context"
@@ -13,17 +14,31 @@ import (
 )
 
 // ---- Constants
-var DOWN_KEY = []byte{27, 91, 66}
-var UP_KEY = []byte{27, 91, 65}
-var RIGHT_KEY = []byte{27, 91, 67}
-var LEFT_KEY = []byte{27, 91, 68}
-var W_KEY = []byte{119}
-var A_KEY = []byte{97}
-var S_KEY = []byte{115}
-var D_KEY = []byte{100}
-var SPACE_KEY = []byte{32}
-var Q_KEY = []byte{113}
-var CTRL_C_KEYS = []byte{3}
+type KeyMap struct {
+	Down      []byte
+	Up        []byte
+	Right     []byte
+	Left      []byte
+	PlaceMark []byte
+	Quit      []byte
+}
+
+var ArrowKeyMap = KeyMap{
+	Down:      []byte{27, 91, 66}, // Down Arrow
+	Up:        []byte{27, 91, 65}, // Up Arrow
+	Right:     []byte{27, 91, 67}, // Right Arrow
+	Left:      []byte{27, 91, 68}, // Left Arrow
+	PlaceMark: []byte{32},         //Space
+	Quit:      []byte{113},        //Q
+}
+var AlphaKeyMap = KeyMap{
+	Down:      []byte{115}, // S
+	Up:        []byte{119}, // W
+	Right:     []byte{100}, // D
+	Left:      []byte{97},  // A
+	PlaceMark: []byte{32},  //TODO Space
+	Quit:      []byte{3},   //CTRL + C
+}
 
 // Terminal Definition - Matches the IO Handler Interface
 type Terminal struct {
@@ -48,7 +63,7 @@ func NewTerminal() (*Terminal, error) {
 	}
 	err = t.SetReadTimeout(500 * time.Millisecond)
 	if err != nil {
-		log.Fatalf("Unable to configure the Terminal read timeout.", err)
+		log.Fatal("Unable to configure the Terminal read timeout.", err)
 		return nil, errors.New("unable to set terminal read timeout")
 	}
 
@@ -85,40 +100,42 @@ func (t *Terminal) RegisterDrawEvents(ctx context.Context, drawChannel <-chan Dr
 
 func (t *Terminal) RegisterInputEvents(ctx context.Context, playerInput chan InputEvent) {
 	charInputChannel := t.getCharacterInputChannel(ctx)
+	keymap := ArrowKeyMap
 	for {
 		select {
 		case char := <-charInputChannel:
-			playerInput <- inputEventFromBytes(char)
+			playerInput <- inputEventFromBytes(char, keymap)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func inputEventFromBytes(c []byte) InputEvent {
+func inputEventFromBytes(c []byte, km KeyMap) InputEvent {
 
 	switch {
-	case bytes.Equal(c, LEFT_KEY) || bytes.Equal(c, A_KEY): // left
+	case bytes.Equal(c, km.Left):
 		return NewInputEvent(Move_Left)
 
-	case bytes.Equal(c, RIGHT_KEY) || bytes.Equal(c, D_KEY): // right
+	case bytes.Equal(c, km.Right):
 		return NewInputEvent(Move_Right)
 
-	case bytes.Equal(c, UP_KEY) || bytes.Equal(c, W_KEY): // up
+	case bytes.Equal(c, km.Up):
 		return NewInputEvent(Move_Up)
 
-	case bytes.Equal(c, DOWN_KEY) || bytes.Equal(c, S_KEY): // down
+	case bytes.Equal(c, km.Down):
 		return NewInputEvent(Move_Down)
 
-	case bytes.Equal(c, SPACE_KEY): // Place key
+	case bytes.Equal(c, km.PlaceMark):
 		return NewInputEvent(Move_PlaceMark)
 
-	case bytes.Equal(c, Q_KEY) || bytes.Equal(c, CTRL_C_KEYS):
+	case bytes.Equal(c, km.Quit):
 		tmpEvent := NewInputEvent(Move_Quit)
 		tmpEvent.Terminate = true
 		return tmpEvent
 
 	default:
+		// TODO Mute this
 		log.Println("Unknown pressed", c)
 	}
 	return NewInputEvent(Move_Noop)
@@ -146,9 +163,6 @@ func (t *Terminal) getCharacterInputChannel(ctx context.Context) chan []byte {
 					log.Printf("Unable to read from the Terminal. %v", err)
 					continue
 				}
-
-				log.Print("Collected bytes below:")
-				log.Print(bytes)
 
 				characterInputChannel <- bytes[0:numRead]
 			}
