@@ -159,6 +159,7 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove io.Move) {
 }
 
 func (game *Game) update() {
+	// TODO does not allow players to move async.
 	// Player Turn
 	currentPlayer := game.players[game.currentPlayerIndex]
 	event := <-currentPlayer.InputChannel

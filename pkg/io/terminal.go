@@ -8,6 +8,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/term"
@@ -40,34 +44,76 @@ var AlphaKeyMap = KeyMap{
 	Quit:      []byte{3},   //CTRL + C
 }
 
-// Terminal Definition - Matches the IO Handler Interface
-type Terminal struct {
-	term.Term
+type Tty struct {
+	*term.Term
+	Lock               *sync.Mutex
+	InputChannel       <-chan []byte
+	SubscriberChannels []chan<- []byte
+	Context            context.Context
+	CancelFunction     func()
 }
 
-func NewTerminal() (*Terminal, error) {
-	// Create Terminal
-	terminal := Terminal{}
-	t, err := term.Open("/dev/tty")
-	if err != nil {
-		log.Fatalf("Unable to open a terminal. %v", err)
-	}
-	terminal.Term = *t
+var ttyLock = &sync.Mutex{}
+var ttyStaticInstance *Tty
 
-	// Configure Terminal into Raw Mode
-	err = t.SetRaw()
+// Terminal Definition - Matches the IO Handler Interface
+type Terminal struct {
+	*Tty
+	keymap KeyMap
+}
 
-	if err != nil {
-		log.Fatalf("Unable to set Terminal into Raw Mode. %v", err)
-		log.Fatal("Attempting to continue but the game may not display correctly.")
-	}
-	err = t.SetReadTimeout(500 * time.Millisecond)
-	if err != nil {
-		log.Fatal("Unable to configure the Terminal read timeout.", err)
-		return nil, errors.New("unable to set terminal read timeout")
+func ensureTtySingleton() (*Tty, error) {
+	ttyLock.Lock()
+	defer ttyLock.Unlock()
+
+	if ttyStaticInstance == nil {
+		// Create Tty
+		t, err := term.Open("/dev/ttys005")
+		if err != nil {
+			log.Fatalf("Unable to open a terminal. %v", err)
+		}
+
+		// Configure Terminal into Raw Mode
+		err = t.SetRaw()
+
+		if err != nil {
+			log.Fatalf("Unable to set Terminal into Raw Mode. %v", err)
+			log.Fatal("Attempting to continue but the game may not display correctly.")
+		}
+		err = t.SetReadTimeout(500 * time.Millisecond)
+		if err != nil {
+			log.Fatal("Unable to configure the Terminal read timeout.", err)
+			return nil, errors.New("unable to set terminal read timeout")
+		}
+		ctx, cancel := context.WithCancel(context.TODO())
+
+		ttyStaticInstance = &Tty{
+			Term:               t,
+			Lock:               ttyLock,
+			SubscriberChannels: []chan<- []byte{},
+			Context:            ctx,
+			CancelFunction:     cancel,
+		}
+		// Start the fan-out channel reading
+		ConfigureTtyChannel(ttyStaticInstance, ctx)
 	}
 
-	return &terminal, nil
+	return ttyStaticInstance, nil
+}
+
+func NewTerminal(km KeyMap) (*Terminal, error) {
+	// Ensure Tty is configured
+	ttyInstance, err := ensureTtySingleton()
+	if err != nil {
+		log.Fatalf("Unable to configure tty. %v", err)
+		return nil, err
+	}
+	// Create User-Terminal
+	terminal := &Terminal{}
+	terminal.Tty = ttyInstance
+	terminal.keymap = km
+
+	return terminal, nil
 }
 
 func (t Terminal) Close() {
@@ -77,8 +123,8 @@ func (t Terminal) Close() {
 }
 
 func (t Terminal) Print(outString string) {
+	// t.Flush()
 	t.Write([]byte(outString))
-	t.Flush()
 }
 
 func (t *Terminal) RegisterDrawEvents(ctx context.Context, drawChannel <-chan DrawEvent) {
@@ -90,25 +136,31 @@ func (t *Terminal) RegisterDrawEvents(ctx context.Context, drawChannel <-chan Dr
 		case event := <-drawChannel:
 			// Clear current screen
 			// TODO this does not have cross-platform support
-			// TODO This does not respect the current TTY access. Should print to the TTY but this has buffering issues.
-			fmt.Print("\033[H\033[2J")
-			fmt.Print(event.DrawString)
+			// TODO This does not respect the current Tty access. Should print to the Tty but this has buffering issues.
+			t.Print("\033[H\033[2J")
+			// fmt.Print(event.DrawString)
+			t.Print(event.DrawString)
 		}
 
 	}
 }
 
 func (t *Terminal) RegisterInputEvents(ctx context.Context, playerInput chan InputEvent) {
-	charInputChannel := t.getCharacterInputChannel(ctx)
-	keymap := ArrowKeyMap
+	// Add PlayerInput to the terminal subscribers
+
+	characterInputChannel := AddTtySubscriber()
 	for {
 		select {
-		case char := <-charInputChannel:
-			playerInput <- inputEventFromBytes(char, keymap)
+		case char := <-characterInputChannel:
+			// TODO If Character is expected from keymap
+			log.Printf("Register Input Events in : %d", goid())
+			playerInput <- inputEventFromBytes(char, t.keymap)
 		case <-ctx.Done():
 			return
 		}
 	}
+	// TODO add remove Tty subscriber
+
 }
 
 func inputEventFromBytes(c []byte, km KeyMap) InputEvent {
@@ -141,18 +193,28 @@ func inputEventFromBytes(c []byte, km KeyMap) InputEvent {
 	return NewInputEvent(Move_Noop)
 }
 
-func (t *Terminal) getCharacterInputChannel(ctx context.Context) chan []byte {
-	characterInputChannel := make(chan []byte)
+func AddTtySubscriber() <-chan []byte {
+	//TODO Add removal of subscriber
+	// Synchronise
+	ttyLock.Lock()
+	defer ttyLock.Unlock()
+	// Add inputChannel to subscribers
+	characterInputChannel := make(chan []byte, 3)
+	ttyStaticInstance.SubscriberChannels = append(ttyStaticInstance.SubscriberChannels, characterInputChannel)
+	return characterInputChannel
+}
+func ConfigureTtyChannel(tty *Tty, ctx context.Context) {
 	go func() {
 		for {
 
 			select {
 			case <-ctx.Done():
+
 				return
 
 			default:
 				bytes := make([]byte, 3)
-				numRead, err := t.Read(bytes)
+				numRead, err := tty.Read(bytes)
 
 				// Did not read anything from terminal in time (No need to log as this is expected)
 				if err == io.EOF {
@@ -164,10 +226,27 @@ func (t *Terminal) getCharacterInputChannel(ctx context.Context) chan []byte {
 					continue
 				}
 
-				characterInputChannel <- bytes[0:numRead]
+				// For each subscriber fan out the input
+				log.Printf("ConfigureTtyChannel : %d", goid())
+				ttyLock.Lock()
+				for _, inputChannel := range tty.SubscriberChannels {
+					log.Printf("ConfigureTtyChannel: Write to SubscriberChannel %v", inputChannel)
+					inputChannel <- bytes[0:numRead]
+				}
+				ttyLock.Unlock()
 			}
 		}
 
 	}()
-	return characterInputChannel
+}
+
+func goid() int {
+	var buf [64]byte
+	n := runtime.Stack(buf[:], false)
+	idField := strings.Fields(strings.TrimPrefix(string(buf[:n]), "goroutine "))[0]
+	id, err := strconv.Atoi(idField)
+	if err != nil {
+		panic(fmt.Sprintf("cannot get goroutine id: %v", err))
+	}
+	return id
 }

@@ -75,7 +75,7 @@ func SetupTest(t *testing.T) (*MockGameIO, *MockGameIO, *MockDrawIO, *game.Game)
 	// Wait for the Game to hook into the p1/p2/draw channels
 	for {
 		time.Sleep(10 * time.Millisecond)
-		if drawMio.DrawChannel != nil {
+		if drawMio.DrawChannel != nil { //READ Datarace
 			break
 		}
 	}
