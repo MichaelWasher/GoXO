@@ -1,3 +1,19 @@
+/*
+Copyright © 2021 Michael Washer <michael.washer@icloud.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package game
 
 import (
@@ -9,9 +25,6 @@ import (
 )
 
 // ---- Game Variables
-var lg LogicGrid = NewLogicGrid()
-
-var currentPlayerIndex int = 0
 
 type State int
 
@@ -25,50 +38,72 @@ type Game struct {
 	Running bool
 	State   State
 	// Users
-	player1       User
-	player2       User
-	players       []*User
-	currentPlayer *User
+	player1 User
+	player2 User
+	players []*User
+	// Player iterating
+	currentPlayerIndex int
+	currentPlayer      *User
 	// Display Other Users
 	drawChannel       chan io.DrawEvent
 	displayOtherUsers bool
+	// Grid and Piece Placement
+	logicGrid LogicGrid
 	// IO Channels
 	// Context Management
 	context context.Context
 	cancel  context.CancelFunc
 }
 
-func NewGame(player1 io.PlayerEventHandler, player2 io.PlayerEventHandler) *Game {
+func createPlayers(inputHandlers []io.PlayerInputHandler) []*User {
+	players := []*User{}
+
+	// Configure Player Inputs
+	for i, playerInputHandler := range inputHandlers {
+
+		input := make(chan io.InputEvent)
+		inputContext, inputContextCancel := context.WithCancel(context.Background())
+		player := &User{
+			Position:           0,
+			Character:          fmt.Sprint(i + 1),
+			Mark:               string(rune(i + int('X'))),
+			Name:               "Player" + fmt.Sprint(i+1),
+			PlayerInputHandler: playerInputHandler,
+			InputChannel:       input,
+			InputContextCancel: inputContextCancel,
+		}
+		go playerInputHandler.RegisterInputEvents(inputContext, input)
+		players = append(players, player)
+	}
+
+	return players
+}
+
+func NewGame(p1InputHandler io.PlayerInputHandler, p2InputHandler io.PlayerInputHandler, mainOuput io.OutputHandler) *Game {
 	game := Game{}
 	// Configure Defaults
 	game.displayOtherUsers = true
-	game.context, game.cancel = context.WithCancel(context.Background())
 
 	// Configure Player Outputs
-	game.drawChannel = make(chan io.DrawEvent, 1)
-	go player1.RegisterDrawEvents(game.context, game.drawChannel)
-	go player2.RegisterDrawEvents(game.context, game.drawChannel)
-
-	// Configure Player Inputs
-	player1Input := make(chan io.InputEvent, 1)
-	go player1.RegisterInputEvents(game.context, player1Input)
-
-	player2Input := make(chan io.InputEvent, 1)
-	go player2.RegisterInputEvents(game.context, player2Input)
+	game.context, game.cancel = context.WithCancel(context.Background())
+	game.drawChannel = make(chan io.DrawEvent)
+	go mainOuput.RegisterDrawEvents(game.context, game.drawChannel)
 
 	// TODO Allow for Multiple Event Subscribers
-
-	// Init Players
-	game.player1 = User{Position: 0, Character: "1", Mark: "X", Name: "Player1", PlayerEventHandler: player1, DrawChannel: game.drawChannel, InputChannel: player1Input}
-	game.player2 = User{Position: 8, Character: "2", Mark: "0", Name: "Player2", PlayerEventHandler: player2, DrawChannel: game.drawChannel, InputChannel: player2Input}
-
-	game.players = []*User{&game.player1, &game.player2}
+	game.logicGrid = NewLogicGrid()
+	game.players = createPlayers([]io.PlayerInputHandler{p1InputHandler, p2InputHandler})
 
 	return &game
 }
 
 func (game *Game) CloseGame() {
-	game.cancel()
+	// Inform all running Go Routines to finish
+	for _, player := range game.players {
+		player.InputContextCancel()
+		close(player.InputChannel)
+	}
+	// TODO close the Draw Channelsgame.drawChannel
+
 }
 
 // Core Game Loop
@@ -125,26 +160,27 @@ func performMove(lg LogicGrid, currentPlayer *User, currentMove io.Move) {
 
 func (game *Game) update() {
 	// Player Turn
-	currentPlayer := game.players[currentPlayerIndex]
-	currentPlayer.InputChannel <- io.NewInputEvent(io.Request_Move)
-	// Perform Turn
+	currentPlayer := game.players[game.currentPlayerIndex]
 	event := <-currentPlayer.InputChannel
 	log.Printf("Received input from %s", currentPlayer.Name)
 
 	switch event.Move {
+	case io.Move_Noop:
+		return
+
 	case io.Move_Quit:
 		log.Print("Command Received to End Game.")
 		game.Running = false
 	case io.Move_PlaceMark:
-		lg.PlaceMark(currentPlayer)
+		game.logicGrid.PlaceMark(currentPlayer)
 		if game.checkWinner(currentPlayer) {
 			//TODO Break and start closing sequence
 
 		}
 		// Change Player
-		currentPlayerIndex = (currentPlayerIndex + 1) % len(game.players)
+		game.currentPlayerIndex = (game.currentPlayerIndex + 1) % len(game.players)
 	default:
-		performMove(lg, currentPlayer, event.Move)
+		performMove(game.logicGrid, currentPlayer, event.Move)
 	}
 
 }
@@ -152,9 +188,9 @@ func (game *Game) update() {
 func (game *Game) draw() {
 	var outputString string
 	if game.displayOtherUsers {
-		outputString = lg.draw([]*User{game.players[currentPlayerIndex]})
+		outputString = game.logicGrid.draw([]*User{game.players[game.currentPlayerIndex]})
 	} else {
-		outputString = lg.draw(game.players)
+		outputString = game.logicGrid.draw(game.players)
 	}
 
 	//-- Draw Statistics
@@ -168,7 +204,7 @@ func (game *Game) draw() {
 
 // ---- Check Winner Functionality
 func (game *Game) checkWinner(user *User) bool {
-	if columnsComplete(lg) || rowsComplete(lg) || diagComplete(lg) || antiDiagComplete(lg) {
+	if columnsComplete(game.logicGrid) || rowsComplete(game.logicGrid) || diagComplete(game.logicGrid) || antiDiagComplete(game.logicGrid) {
 		// Winner is found
 		log.Print("WINNER WAS FOUND")
 		return true

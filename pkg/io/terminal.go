@@ -4,8 +4,11 @@ package io
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log"
+	"time"
 
 	"github.com/pkg/term"
 )
@@ -42,7 +45,7 @@ type Terminal struct {
 	term.Term
 }
 
-func NewTerminal() Terminal {
+func NewTerminal() (*Terminal, error) {
 	// Create Terminal
 	terminal := Terminal{}
 	t, err := term.Open("/dev/tty")
@@ -53,12 +56,18 @@ func NewTerminal() Terminal {
 
 	// Configure Terminal into Raw Mode
 	err = t.SetRaw()
+
 	if err != nil {
 		log.Fatalf("Unable to set Terminal into Raw Mode. %v", err)
 		log.Fatal("Attempting to continue but the game may not display correctly.")
 	}
+	err = t.SetReadTimeout(500 * time.Millisecond)
+	if err != nil {
+		log.Fatalf("Unable to configure the Terminal read timeout. %v", err)
+		return nil, errors.New("unable to set terminal read timeout")
+	}
 
-	return terminal
+	return &terminal, nil
 }
 
 func (t Terminal) Close() {
@@ -72,7 +81,7 @@ func (t Terminal) Print(outString string) {
 	t.Flush()
 }
 
-func (t Terminal) RegisterDrawEvents(ctx context.Context, drawChannel <-chan DrawEvent) {
+func (t *Terminal) RegisterDrawEvents(ctx context.Context, drawChannel <-chan DrawEvent) {
 	// While Not Quit
 	for true {
 		select {
@@ -89,20 +98,19 @@ func (t Terminal) RegisterDrawEvents(ctx context.Context, drawChannel <-chan Dra
 	}
 }
 
-func (t Terminal) RegisterInputEvents(ctx context.Context, playerInput chan InputEvent) {
+func (t *Terminal) RegisterInputEvents(ctx context.Context, playerInput chan InputEvent) {
+	charInputChannel := t.getCharacterInputChannel(ctx)
 	for {
 		select {
-		case <-playerInput:
-			// TODO Configure Multiple User Keymaps
-			playerInput <- getInput(getch(&t.Term), ArrowKeyMap)
-
+		case char := <-charInputChannel:
+			playerInput <- inputEventFromBytes(char, ArrowKeyMap)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func getInput(c []byte, km KeyMap) InputEvent {
+func inputEventFromBytes(c []byte, km KeyMap) InputEvent {
 
 	switch {
 	case bytes.Equal(c, km.Left):
@@ -132,15 +140,36 @@ func getInput(c []byte, km KeyMap) InputEvent {
 	return NewInputEvent(Move_Noop)
 }
 
-func getch(terminal *term.Term) []byte {
+func (t *Terminal) getCharacterInputChannel(ctx context.Context) chan []byte {
+	characterInputChannel := make(chan []byte)
+	go func() {
+		for {
 
-	bytes := make([]byte, 3)
-	numRead, err := terminal.Read(bytes)
-	if err != nil {
-		log.Printf("Unable to read from the Terminal. %v", err)
-		return nil
-	}
+			select {
+			case <-ctx.Done():
+				return
 
-	return bytes[0:numRead]
+			default:
+				bytes := make([]byte, 3)
+				numRead, err := t.Read(bytes)
 
+				// Did not read anything from terminal in time (No need to log as this is expected)
+				if err == io.EOF {
+					continue
+				}
+
+				if err != nil {
+					log.Printf("Unable to read from the Terminal. %v", err)
+					continue
+				}
+
+				log.Print("Collected bytes below:")
+				log.Print(bytes)
+
+				characterInputChannel <- bytes[0:numRead]
+			}
+		}
+
+	}()
+	return characterInputChannel
 }
