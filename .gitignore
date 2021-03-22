@@ -18,3 +18,4 @@ bin/
 log-file.txt
 .idea
 go.sum
+.vscode
